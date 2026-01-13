@@ -76,6 +76,26 @@ STEPCA_PASSWORD="your_ca_password"
     ```bash
     docker compose up -d
     ```
+---
+
+## Vaultwarden: Usage and Security
+Once your data is imported from Chrome or LastPass, follow these 
+steps to ensure a smooth and secure experience.
+
+### Browser Integration
+Install the Bitwarden browser extension and set your 'Self-hosted' 
+URL to `https://vault.piselfhosting.com`. The extension will 
+automatically prompt to save new credentials.
+
+### Android Integration
+Enable the 'Auto-fill service' in the Bitwarden Android app settings 
+to allow the app to detect login fields in browsers and other 
+mobile applications.
+
+### Hardening (Post-Migration)
+To maintain sovereignty and prevent unauthorized users from 
+registering on your server, disable new signups in your configuration:
+`SIGNUPS_ALLOWED="false"`
 
 ---
 

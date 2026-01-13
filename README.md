@@ -65,7 +65,43 @@ STEPCA_PASSWORD="your_ca_password"
 ## Why Sovereignty Matters
 As of late 2025, major European free ACME providers (like Buypass) have terminated their services. This project implements **Smallstep** as a response, allowing users to become their own Certificate Authority. Furthermore, it addresses the "IoT Leak" by ensuring that devices like security cameras cannot communicate with external servers, keeping sensitive visual data under the sole control of the owner.
 
+## Sovereign 2FA Strategy
+To avoid dependency on US-based identity providers (Google, Microsoft), 
+this stack strictly uses open-source TOTP (Time-based One-Time Password) 
+standards.
+
+### Tools:
+* **App:** Aegis Authenticator (Open Source, Dutch origin).
+* **Distribution:** Installed via F-Droid to bypass Google Play Store 
+  control and potential forced updates/kill-switches.
+* **Backups:** Encrypted local exports stored on the Raspberry Pi, 
+  ensuring access to 2FA tokens even if the mobile device or original 
+  app provider fails.
+
+### Why this matters:
+Identity is the cornerstone of sovereignty. By using local, 
+auditable, and offline tools for 2FA, the user remains in control 
+regardless of geopolitical shifts or Big Tech policy changes.
+
 ---
+## The Battle for the Device: Banking vs. Sovereignty
+Recent trends show financial institutions blocking devices that utilize 
+independent app stores like F-Droid. This is a direct challenge to 
+digital sovereignty.
+
+### Mitigation Strategy:
+* **Compartmentalization:** Use Android Work Profiles to isolate 
+  corporate/banking apps from sovereign open-source tools.
+* **Source Transparency:** While F-Droid is preferred for autonomy, 
+  using the Play Store version of open-source tools (like Aegis) 
+  can be a pragmatic compromise to maintain access to essential 
+  financial services without sacrificing the security of the 
+  underlying code.
+
+### Philosophical Stance:
+True sovereignty means the owner of the hardware decides what software 
+runs on it. We reject 'Security by Exclusion' and advocate for 
+'Security by Transparency'.
 
 ## License
 This project is shared for educational purposes in the spirit of digital autonomy.

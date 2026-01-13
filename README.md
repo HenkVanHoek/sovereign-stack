@@ -56,6 +56,26 @@ public internet to ensure a seamless experience for family members.
 
 ---
 
+## Active Defense: Fail2Ban Integration
+To protect public-facing services (like Vaultwarden) from brute-force 
+attacks, this stack includes a Fail2Ban service that monitors Nginx 
+Proxy Manager logs.
+
+### Implementation Details:
+* **Log Monitoring:** Fail2Ban scans `/var/log/npm/proxy-host-*_access.log` 
+  for repeated 401/403 errors.
+* **Network Security:** Operates in `host` network mode to interact 
+  directly with the Linux `iptables` or `nftables` firewall.
+* **Policy:** Default policy is 5 failed attempts within 10 minutes 
+  results in a 24-hour IP ban.
+
+### Sovereignty Benefit:
+Instead of relying on centralized edge-security providers (e.g., Cloudflare), 
+the defense is managed locally on the Raspberry Pi, ensuring that even 
+security telemetry remains private.
+
+---
+
 ## Offsite Redundancy: The Peer-to-Peer Backup
 To achieve maximum resilience, this project implements a mutual 
 backup strategy between two geographically separated Raspberry Pis.

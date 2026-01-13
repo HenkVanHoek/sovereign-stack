@@ -56,6 +56,25 @@ public internet to ensure a seamless experience for family members.
 
 ---
 
+## Offsite Redundancy: The Peer-to-Peer Backup
+To achieve maximum resilience, this project implements a mutual 
+backup strategy between two geographically separated Raspberry Pis.
+
+### Architecture:
+* **Connectivity:** A dedicated Wireguard tunnel connects both nodes.
+* **Sync Mechanism:** Utilization of Syncthing or BorgBackup for 
+  encrypted, offsite data replication.
+* **Hardware:** M.2 SSD storage on both nodes for high reliability.
+
+### Benefits:
+* **Sovereign Cloud:** No reliance on AWS, Google Drive, or Dropbox 
+  for offsite storage.
+* **Privacy:** Data is encrypted at rest and in transit using 
+  locally managed keys.
+* **Mutual Support:** Both nodes act as a failsafe for each other, 
+  doubeling the resilience of the family's digital assets.
+
+---
 ## Deployment Instructions
 
 ### 1. Environment Variables (.env)

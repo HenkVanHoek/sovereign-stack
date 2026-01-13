@@ -39,6 +39,23 @@ The system is designed with three distinct security layers to minimize risk and 
 
 ---
 
+## Public Exposure vs. VPN Access
+While administrative tools (NPM, Portainer) are restricted to VPN access 
+only, user-facing services like Vaultwarden can be exposed to the 
+public internet to ensure a seamless experience for family members.
+
+### Security Recommendations for Public Access:
+* **Disable Signups:** Once all family members have registered, set 
+  `SIGNUPS_ALLOWED="false"` to prevent random internet users from 
+  creating accounts on your hardware.
+* **Mandatory MFA:** Ensure every user activates Multi-Factor 
+  Authentication (TOTP) immediately.
+* **Fail2Ban:** (Optional but recommended) Implement Fail2Ban to 
+  block IP addresses that attempt multiple failed login attempts.
+* **SSL Only:** Always enforce HTTPS via Nginx Proxy Manager.
+
+---
+
 ## Deployment Instructions
 
 ### 1. Environment Variables (.env)

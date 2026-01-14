@@ -240,6 +240,19 @@ registering on your server, disable new signups in your configuration:
     primary backup script fails to execute entirely.
 
 ---
+## Maintenance: Monitoring Permissions
+    The monitoring system is designed to run under a standard user 
+    account (non-root) to enhance system security.
+
+    ### Setup Requirements:
+    - **Permissions:** Ensure the monitor script is executable:
+      `chmod +x monitor_backup.sh`
+    - **Ownership:** The user must have read access to the 
+      `${DOCKER_ROOT}/backups` directory.
+    - **Cron:** Schedule via the user crontab (`crontab -e`) to 
+      avoid unnecessary sudo escalation.
+
+---
 ## Why Sovereignty Matters
 As of late 2025, major European free ACME providers (like Buypass) have terminated their services. This project implements **Smallstep** as a response, allowing users to become their own Certificate Authority. Furthermore, it addresses the "IoT Leak" by ensuring that devices like security cameras cannot communicate with external servers, keeping sensitive visual data under the sole control of the owner.
 

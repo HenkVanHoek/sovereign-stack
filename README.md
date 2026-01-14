@@ -45,6 +45,7 @@ This project runs on a Raspberry Pi using Docker and a unified bridge network (`
 | **Vaultwarden** | Self-hosted Password Manager                 | Bitwarden-compatible Backend        |
 | **CCTV / NVR** | Local Surveillance Security                  | Local Storage (No Cloud)            |
 | **Prosody** | Sovereign Communication                      | XMPP-based Neighborhood Chat        |
+| **Portainer** | Container management                         | Manage the containers running the system |
 
 ---
 

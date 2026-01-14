@@ -313,6 +313,23 @@ registering on your server, disable new signups in your configuration:
     NPM Access Lists provide a secondary application-level filter.
 
 ---
+## Security: Active Defense (Fail2Ban)
+    To protect public-facing services (Vaultwarden, NPM Admin) from 
+    brute-force attacks, Fail2Ban is integrated into the stack.
+
+    ### Implementation:
+    - **Mode:** Running in `network_mode: host` to interact with 
+      the host's Netfilter/IPTables.
+    - **Log Analysis:** Scans Nginx Proxy Manager access logs for 
+      repeated 401 (Unauthorized) and 403 (Forbidden) errors.
+    - **Action:** Automatically drops traffic from offending IP 
+      addresses at the kernel level via UFW/IPTables.
+
+    ### Configuration:
+    Custom filters are located in `./fail2ban/data/filter.d` and 
+    jail configurations in `./fail2ban/data/jail.d`.
+---
+
 ## Why Sovereignty Matters
 As of late 2025, major European free ACME providers (like Buypass) have terminated their services. This project implements **Smallstep** as a response, allowing users to become their own Certificate Authority. Furthermore, it addresses the "IoT Leak" by ensuring that devices like security cameras cannot communicate with external servers, keeping sensitive visual data under the sole control of the owner.
 

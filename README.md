@@ -118,7 +118,20 @@ backup strategy between two geographically separated Raspberry Pis.
   locally managed keys.
 * **Mutual Support:** Both nodes act as a failsafe for each other, 
   doubeling the resilience of the family's digital assets.
+---
+## Step-CA: Internal Trust Management
+The stack now operates its own Private CA. This ensures that even 
+without an internet connection, all internal traffic remains encrypted 
+and trusted.
 
+### Configuration Details:
+- **ACME Endpoint:** `https://step-ca:9000/acme/acme/directory`
+- **Fingerprint:** Stored in `.env` for automated provisioning.
+- **Protocol:** ACME v2.
+
+### Client Trust:
+To trust this CA, the `root_ca.crt` must be imported into the 
+OS-level trust store on all client devices.
 ---
 ## Deployment Instructions
 

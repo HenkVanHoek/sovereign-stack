@@ -205,7 +205,21 @@ registering on your server, disable new signups in your configuration:
     `./backup_stack.sh`
 
 ---
+## Automation: Scheduled Backups
+    To ensure data persistence and disaster recovery readiness, the 
+    backup process is fully automated via Cron.
 
+    ### Schedule:
+    - **Frequency:** Daily at 03:00 AM.
+    - **Command:** `cd /home/hvhoek/docker && ./backup_stack.sh`
+    - **Integrity:** Each backup is a timestamped, AES-256 encrypted 
+      archive of the entire project root.
+
+    ### Verification:
+    Periodically check the `${DOCKER_ROOT}/backups` directory to 
+    confirm that new `.enc` files are being generated successfully.
+
+---
 ## Why Sovereignty Matters
 As of late 2025, major European free ACME providers (like Buypass) have terminated their services. This project implements **Smallstep** as a response, allowing users to become their own Certificate Authority. Furthermore, it addresses the "IoT Leak" by ensuring that devices like security cameras cannot communicate with external servers, keeping sensitive visual data under the sole control of the owner.
 

@@ -225,6 +225,26 @@ digital sovereignty.
 True sovereignty means the owner of the hardware decides what software 
 runs on it. We reject 'Security by Exclusion' and advocate for 
 'Security by Transparency'.
+---
+## Utilities: Sovereign Certificate Generator
+    The `gen_cert.sh` script provides a portable way to manually issue 
+    certificates from the internal Smallstep CA. This is particularly 
+    useful when the proxy manager UI does not support custom ACME 
+    fields or for long-lived certificates (e.g., 10 years).
 
+    ### Features
+    - **GitHub Safe:** No personal emails or usernames are hardcoded. 
+      It dynamically pulls identity from `.env`.
+    - **Permission Aware:** Automatically sets file ownership to the 
+      active host user using dynamic UID/GID detection.
+    - **Cleanup:** Automatically removes the private key from the 
+      container's temporary storage after the transfer is complete.
+
+    ### Usage
+    1. Ensure `STEPCA_EMAIL` is set in your `.env` file.
+    2. Run the script: `./gen_cert.sh`.
+    3. Follow the prompts for domain and duration.
+    4. Upload the resulting `.crt` and `.key` files to your proxy.
+---
 ## License
 This project is shared for educational purposes in the spirit of digital autonomy.

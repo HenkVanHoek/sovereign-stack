@@ -184,6 +184,22 @@ registering on your server, disable new signups in your configuration:
 `SIGNUPS_ALLOWED="false"`
 
 ---
+## Services: Sovereign Communication (Prosody)
+    The stack includes a Prosody XMPP server to provide private, 
+    decentralized messaging within the local infrastructure.
+
+    ### Encryption:
+    - Secured via **Smallstep CA** certificates.
+    - Configuration utilizes the `./prosody/certs` volume to inject 
+      locally generated SSL files.
+
+    ### Network Hardening:
+    - Client access (5222) is restricted to the trusted local subnet 
+      via UFW.
+    - BOSH and Websocket ports (5280/5281) are available for web-based 
+      XMPP clients.
+
+---
 ## Maintenance: Encrypted Backups
     The `backup_stack.sh` script automates the backup of the entire 
     Docker environment, including volumes and configuration files.

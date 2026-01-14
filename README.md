@@ -184,6 +184,27 @@ registering on your server, disable new signups in your configuration:
 `SIGNUPS_ALLOWED="false"`
 
 ---
+## Maintenance: Encrypted Backups
+    The `backup_stack.sh` script automates the backup of the entire 
+    Docker environment, including volumes and configuration files.
+
+    ### Features:
+    - **AES-256 Encryption:** All backups are encrypted using OpenSSL 
+      with PBKDF2 for high security.
+    - **GitHub Ready:** Sensitive data is pulled from the `.env` file; 
+      no passwords or personal paths are stored in the script.
+    - **Automated Rotation:** Maintains a rolling window of backups 
+      (default: 7 days) to manage disk space.
+
+    ### Configuration:
+    Add the following to your `.env` file:
+    - `BACKUP_PASSWORD`: The key used for encryption.
+    - `BACKUP_RETENTION_DAYS`: Number of files to keep.
+
+    ### Manual Run:
+    `./backup_stack.sh`
+
+---
 
 ## Why Sovereignty Matters
 As of late 2025, major European free ACME providers (like Buypass) have terminated their services. This project implements **Smallstep** as a response, allowing users to become their own Certificate Authority. Furthermore, it addresses the "IoT Leak" by ensuring that devices like security cameras cannot communicate with external servers, keeping sensitive visual data under the sole control of the owner.

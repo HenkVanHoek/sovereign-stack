@@ -5,7 +5,31 @@ sovereign-stack is a project dedicated to regaining digital sovereignty by hosti
 ## Core Vision
 * **Sovereignty:** Reducing dependency on US-based infrastructure (e.g., Let's Encrypt, Big Tech clouds).
 * **Privacy:** Keeping community and personal data (GDPR) within your own walls.
-* **IoT Autonomy:** Utilizing hardware (like CCTV) without allowing it to "phone home" to foreign servers.
+* **IoT Autonomy:** Utiliz# sovereign-stack: Simplified Digital Sovereignty
+
+This project provides a reliable, privacy-first home infrastructure 
+running on a Raspberry Pi. It prioritizes stability and ease of 
+management while maintaining full control over personal data.
+
+## Core Components
+* **DNS Privacy:** AdGuard Home using trusted Freedom Internet DNS.
+* **Password Management:** Vaultwarden for secure, local credential storage.
+* **Access Control:** Nginx Proxy Manager (NPM) with IP-based Access Lists.
+* **Communication:** Prosody XMPP server for private messaging.
+* **Security:** All surveillance traffic (Frigate) isolated from the internet.
+
+## Network Configuration (Simplified)
+To keep the infrastructure manageable, the following logic is applied:
+1. **DNS Resolving:** AdGuard Home acts as the primary resolver, 
+   forwarding external queries to Freedom Internet's private servers.
+2. **Local Traffic:** DNS Rewrites are used within AdGuard to route 
+   `*.piselfhosting.com` traffic directly to the Raspberry Pi IP.
+3. **VPN Access:** Infrastructure management (NPM/Portainer) is 
+   restricted to local or VPN (Wireguard) connections only.
+
+## Maintenance
+* **Updates:** Managed automatically by Watchtower.
+* **Monitoring:** Real-time logs available via Portainer.ing hardware (like CCTV) without allowing it to "phone home" to foreign servers.
 * **Resilience:** Services remain functional and trusted even if external authorities fail.
 
 ---

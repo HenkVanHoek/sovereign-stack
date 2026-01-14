@@ -253,6 +253,22 @@ registering on your server, disable new signups in your configuration:
       avoid unnecessary sudo escalation.
 
 ---
+## Security: Network Hardening (UFW)
+    The Raspberry Pi utilizes UFW (Uncomplicated Firewall) to implement 
+    a 'Default Deny' incoming policy.
+
+    ### Open Ports:
+    - **80/443 (TCP):** Web traffic orchestrated by NPM.
+    - **53 (TCP/UDP):** DNS resolution handled by AdGuard Home.
+    - **9000 (TCP):** Internal ACME endpoint for Step-CA.
+    - **22 (TCP):** SSH management (restricted to local/VPN).
+
+    ### Docker Integration:
+    Note that Docker manages its own iptables chains. This UFW 
+    configuration acts as the primary host-level gatekeeper, while 
+    NPM Access Lists provide a secondary application-level filter.
+
+---
 ## Why Sovereignty Matters
 As of late 2025, major European free ACME providers (like Buypass) have terminated their services. This project implements **Smallstep** as a response, allowing users to become their own Certificate Authority. Furthermore, it addresses the "IoT Leak" by ensuring that devices like security cameras cannot communicate with external servers, keeping sensitive visual data under the sole control of the owner.
 

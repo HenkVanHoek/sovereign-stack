@@ -117,6 +117,15 @@ STEPCA_PASSWORD="your_ca_password"
     ```
 ---
 
+## AdGuard: DNS-over-TLS Configuration
+To ensure reliable and encrypted DNS lookups via Freedom Internet, 
+IP-based TLS strings are used. This avoids 'bootstrap loops' 
+where the system cannot resolve the DNS provider's own hostname.
+
+### Configuration:
+* **Upstream:** `tls://185.93.175.43` and `tls://185.232.98.76`
+* **Protocol:** Port 853 (DoT)
+* **Bootstrap:** Local Freedom IPs are used for initial resolution
 ## Vaultwarden: Usage and Security
 Once your data is imported from Chrome or LastPass, follow these 
 steps to ensure a smooth and secure experience.

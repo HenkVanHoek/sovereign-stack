@@ -167,7 +167,23 @@ where the system cannot resolve the DNS provider's own hostname.
 ## Vaultwarden: Usage and Security
 Once your data is imported from Chrome or LastPass, follow these 
 steps to ensure a smooth and secure experience.
+## Vaultwarden: Mobile Sync Status
+    As of January 2026, mobile synchronization is verified using the 
+    'Pull-to-refresh' mechanism.
 
+    ### Configuration Details:
+    - **Client Setting:** 'Allow sync on refresh' enabled in the 
+      Bitwarden mobile app.
+    - **Performance:** Manual refresh ensures immediate consistency 
+      between the desktop vault and mobile device without relying on 
+      unstable background push notifications.
+    - **Data Integrity:** All entries are persistently stored on 
+      the local 1TB M.2 SSD.
+
+    ### Security Recommendation:
+    Ensure 'Vault Timeout' is set to 'Lock' and Biometric Unlock 
+    is active to maintain a high security posture while utilizing 
+    the manual sync feature.
 ### Browser Integration
 Install the Bitwarden browser extension and set your 'Self-hosted' 
 URL to `https://vault.piselfhosting.com`. The extension will 
@@ -285,7 +301,7 @@ registering on your server, disable new signups in your configuration:
     The Raspberry Pi utilizes UFW (Uncomplicated Firewall) to implement 
     a 'Default Deny' incoming policy.
 
-    ### Open Ports:
+### Open Ports:
     - **80/443 (TCP):** Web traffic orchestrated by NPM.
     - **53 (TCP/UDP):** DNS resolution handled by AdGuard Home.
     - **9000 (TCP):** Internal ACME endpoint for Step-CA.

@@ -38,3 +38,20 @@ ownership. The container user (step) requires UID 1000.
 
 Fix:
 `sudo chown -R 1000:1000 ${DOCKER_ROOT}/step-ca`
+
+## Post-Configuration Note: Browser Caching & Service Workers
+    After correcting environment variables (like `DOMAIN`), a simple 
+    browser restart may not be sufficient to resolve 'Fetch Errors'.
+
+    ### Observations:
+    - Modern browsers utilize Service Workers and background sync that 
+      can persist even after a restart.
+    - These processes may hold onto invalid CSRF tokens or session 
+      headers that don't match the new server configuration.
+    
+    ### Recommended Recovery Steps:
+    1. Fully log out of the Bitwarden Vault.
+    2. Clear site data/cache specifically for the vault domain.
+    3. If issues persist, a full system network stack reset (or 
+       sleep/wake cycle) can force a re-handshake with the proxy, 
+       clearing stale background processes.

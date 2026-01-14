@@ -30,3 +30,11 @@ Ensure that the correct certificate is selected in the Nginx Proxy Manager UI un
     own public IPv4 address to the NPM Access List. This ensures that 
     even when the VPN "masquerades" the traffic through the public gateway, 
     access is still granted.
+
+## Troubleshooting: Permission Denied on Step-CA
+If the `step-ca` container fails to start with a 'Permission denied' 
+error in the logs, ensure the host directory has the correct UID 
+ownership. The container user (step) requires UID 1000.
+
+Fix:
+`sudo chown -R 1000:1000 ${DOCKER_ROOT}/step-ca`

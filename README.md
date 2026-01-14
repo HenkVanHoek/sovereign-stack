@@ -199,6 +199,18 @@ registering on your server, disable new signups in your configuration:
     - BOSH and Websocket ports (5280/5281) are available for web-based 
       XMPP clients.
 
+    The stack includes a functional Prosody XMPP server for private 
+    messaging, independent of commercial providers.
+
+    ### Current Setup:
+    - **Users:** Primary administrator and family accounts active.
+    - **Encryption:** TLS-enforced for all client connections.
+    - **Ports:** 5222 (c2s) and 5269 (s2s) managed via UFW.
+
+    ### Mobile Integration:
+    - **Android:** Recommended client is **Conversations** (via F-Droid).
+    - **Logic:** Connects to `chat.piselfhosting.com` using DNS 
+      rewrites provided by AdGuard Home when local, or VPN when mobile.
 ---
 ## Maintenance: Encrypted Backups
     The `backup_stack.sh` script automates the backup of the entire 

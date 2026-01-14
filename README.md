@@ -220,6 +220,26 @@ registering on your server, disable new signups in your configuration:
     confirm that new `.enc` files are being generated successfully.
 
 ---
+## Monitoring: Generic Watchdog Implementation
+    The monitoring system is decoupled from specific user paths and 
+    identities to allow for secure repository distribution.
+
+    ### Configuration (via .env):
+    - `BACKUP_EMAIL`: Target for alerts (e.g., your Freedom.nl address).
+    - `MONITOR_WINDOW_MINS`: Time window to check for new files 
+      (default: 90).
+
+    ### Portability:
+    The `monitor_backup.sh` script dynamically resolves its own 
+    absolute path using `readlink`, ensuring the `.env` file is 
+    located correctly even when triggered by the system Cron daemon.
+
+    ### Fail-Safe:
+    By running this script independently of the backup process, the 
+    system provides a 'Dead Man's Switch' that triggers if the 
+    primary backup script fails to execute entirely.
+
+---
 ## Why Sovereignty Matters
 As of late 2025, major European free ACME providers (like Buypass) have terminated their services. This project implements **Smallstep** as a response, allowing users to become their own Certificate Authority. Furthermore, it addresses the "IoT Leak" by ensuring that devices like security cameras cannot communicate with external servers, keeping sensitive visual data under the sole control of the owner.
 

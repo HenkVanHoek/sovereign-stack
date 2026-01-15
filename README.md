@@ -282,7 +282,20 @@ registering on your server, disable new signups in your configuration:
     ### Verification:
     Periodically check the `${DOCKER_ROOT}/backups` directory to 
     confirm that new `.enc` files are being generated successfully.
+---
+## Automation: Physical Environment Alerts
+    To ensure immediate awareness of critical hardware stress, the 
+    stack includes a physical alert mechanism (Sovereign Signal).
 
+    ### Alert Logic (Home Assistant):
+    - **Thermal Trigger:** CPU Temperature > 70°C.
+    - **Storage Trigger:** SSD I/O utilization > 80% for > 60 seconds.
+    - **Physical Action:** Integrated Smart Lamp turns ON.
+
+    ### Design Intent:
+    In a high-security or neighborhood safety role, physical alerts 
+    provide a fail-safe notification layer that does not rely on 
+    mobile push services or external cloud-based notification providers.
 ---
 ## Monitoring: Generic Watchdog Implementation
     The monitoring system is decoupled from specific user paths and 

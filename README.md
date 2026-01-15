@@ -329,6 +329,26 @@ registering on your server, disable new signups in your configuration:
     Custom filters are located in `./fail2ban/data/filter.d` and 
     jail configurations in `./fail2ban/data/jail.d`.
 ---
+## Services: Home Assistant Reverse Proxy
+    Home Assistant requires specific security configuration to function 
+    correctly behind Nginx Proxy Manager.
+
+    ### Configuration (configuration.yaml):
+    To prevent '400 Bad Request' errors, the proxy's IP range must be 
+    added to the trusted proxies list:
+    ```yaml
+    http:
+      use_x_forwarded_for: true
+      trusted_proxies:
+        - 172.16.0.0/12
+    ```
+
+    ### NPM Settings:
+    - **Websockets Support:** Must be enabled for the Lovelace UI to 
+      function.
+    - **Host Resolution:** Use the internal Docker container name 
+      `homeassistant` to bypass host-level UFW restrictions.
+---
 
 ## Why Sovereignty Matters
 As of late 2025, major European free ACME providers (like Buypass) have terminated their services. This project implements **Smallstep** as a response, allowing users to become their own Certificate Authority. Furthermore, it addresses the "IoT Leak" by ensuring that devices like security cameras cannot communicate with external servers, keeping sensitive visual data under the sole control of the owner.

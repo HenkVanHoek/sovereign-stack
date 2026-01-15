@@ -227,6 +227,26 @@ registering on your server, disable new signups in your configuration:
     - **Android:** Recommended client is **Conversations** (via F-Droid).
     - **Logic:** Connects to `chat.piselfhosting.com` using DNS 
       rewrites provided by AdGuard Home when local, or VPN when mobile.
+
+
+---
+## Connectivity: VPN DNS Optimization
+    For mobile devices using Wireguard, a direct DNS path is required 
+    to resolve internal `*.piselfhosting.com` addresses.
+
+    ### Configuration:
+    - **Endpoint:** Wireguard Tunnel
+    - **DNS Setting:** `192.168.178.118` (Direct Pi IP)
+    
+    ### Reasoning:
+    Bypassing the router (Fritz!Box) as a DNS relay prevents issues 
+    with 'DNS Rebind Protection' and ensures that all mobile traffic 
+    is correctly filtered and resolved by the local AdGuard instance, 
+    even when the device is on a cellular (4G/5G) network.
+
+    ### Firewall Note:
+    Ensure the Wireguard subnet is permitted in UFW to avoid 
+    'Connection Timed Out' errors on the mobile client.
 ---
 ## Maintenance: Encrypted Backups
     The `backup_stack.sh` script automates the backup of the entire 

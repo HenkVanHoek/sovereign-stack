@@ -369,7 +369,25 @@ registering on your server, disable new signups in your configuration:
     - **Host Resolution:** Use the internal Docker container name 
       `homeassistant` to bypass host-level UFW restrictions.
 ---
+## Monitoring: System Health (Glances)
+    To ensure long-term stability and monitor thermal performance, the 
+    stack utilizes Glances for real-time hardware telemetry.
 
+    ### Metrics Tracked:
+    - **Thermal:** CPU temperature (Critical for RPi longevity).
+    - **Resources:** Real-time CPU, RAM, and I/O wait times.
+    - **Container Stats:** Per-container resource consumption via 
+      Docker socket integration.
+
+    ### Home Assistant Integration:
+    The Glances API is bridged to Home Assistant, allowing for 
+    automated alerts (e.g., mobile notification if Temp > 75°C) 
+    and long-term history graphs in the Lovelace UI.
+
+    ### Security:
+    Access to the Glances web interface (port 61208) is restricted 
+    to the local trusted subnet via UFW.
+---
 ## Why Sovereignty Matters
 As of late 2025, major European free ACME providers (like Buypass) have terminated their services. This project implements **Smallstep** as a response, allowing users to become their own Certificate Authority. Furthermore, it addresses the "IoT Leak" by ensuring that devices like security cameras cannot communicate with external servers, keeping sensitive visual data under the sole control of the owner.
 

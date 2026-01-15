@@ -55,3 +55,19 @@ Fix:
     3. If issues persist, a full system network stack reset (or 
        sleep/wake cycle) can force a re-handshake with the proxy, 
        clearing stale background processes.
+## Firewall: Subnet Mask Precision
+    When configuring UFW to allow traffic from Docker containers to 
+    host-mode services (like Home Assistant), the subnet mask is 
+    critical.
+
+    ### Configuration Fix:
+    - **Incorrect:** `172.16.0.0/24` (Limits access to a single 
+      Docker bridge).
+    - **Correct:** `172.16.0.0/12` (Encompasses the entire default 
+      Docker address space from 172.16.x.x to 172.31.x.x).
+
+    ### Impact:
+    This broadens the trusted internal range, ensuring that even if 
+    Docker creates new bridge networks for different compose projects, 
+    the Nginx Proxy Manager can still route traffic to host-mode 
+    applications without being dropped by the firewall.

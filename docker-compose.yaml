@@ -1,0 +1,255 @@
+services:
+    portainer:
+        container_name: portainer
+        image: portainer/portainer-ce:latest
+        restart: unless-stopped
+        security_opt:
+            - "no-new-privileges:true"
+        ports:
+            - "9443:9443"
+        volumes:
+            - "/etc/localtime:/etc/localtime:ro"
+            - "/var/run/docker.sock:/var/run/docker.sock"
+            - "${DOCKER_ROOT}/portainer/data:/data"
+        networks:
+            - pi-services
+
+    frigate:
+        container_name: frigate
+        privileged: true
+        restart: unless-stopped
+        stop_grace_period: 30s
+        image: ghcr.io/blakeblackshear/frigate:stable
+        shm_size: "512mb"
+        devices:
+            - "/dev/bus/usb:/dev/bus/usb"
+            - "/dev/apex_0:/dev/apex_0"
+            - "/dev/dri/renderD128:/dev/dri/renderD128"
+            - "/dev/video10:/dev/video10"
+            - "/dev/video11:/dev/video11"
+            - "/dev/video12:/dev/video12"
+            - "/dev/video13:/dev/video13"
+        volumes:
+            - "/etc/localtime:/etc/localtime:ro"
+            - "${DOCKER_ROOT}/config:/config"
+            - "${DOCKER_ROOT}/storage:/media/frigate"
+            - type: tmpfs
+              target: /tmp/cache
+              tmpfs:
+                  size: 1000000000
+        ports:
+            - "5000:5000"
+            - "8971:8971"
+            - "8554:8554"
+            - "8555:8555/tcp"
+            - "8555:8555/udp"
+        environment:
+            FRIGATE_RTSP_PASSWORD: "${FRIGATE_RTSP_PASSWORD}"
+            FRIGATE_MQTT_ENABLED: "True"
+            FRIGATE_MQTT_HOST: "mqtt"
+            FRIGATE_MQTT_PORT: "1883"
+            FRIGATE_MQTT_USER: "${FRIGATE_MQTT_USER}"
+            FRIGATE_MQTT_PASSWORD: "${FRIGATE_MQTT_PASSWORD}"
+        networks:
+            - pi-services
+        depends_on:
+            - mqtt
+
+    homeassistant:
+        container_name: homeassistant
+        image: "ghcr.io/home-assistant/home-assistant:stable"
+        restart: unless-stopped
+        privileged: true
+        network_mode: host
+        volumes:
+            - "${DOCKER_ROOT}/homeassistant:/config"
+            - "/etc/localtime:/etc/localtime:ro"
+        depends_on:
+            - mqtt
+
+    mqtt:
+        container_name: mqtt
+        image: eclipse-mosquitto:latest
+        restart: unless-stopped
+        ports:
+            - "1883:1883"
+            - "9001:9001"
+        volumes:
+            - "${DOCKER_ROOT}/mosquitto/config:/mosquitto/config"
+            - "${DOCKER_ROOT}/mosquitto/data:/mosquitto/data"
+            - "${DOCKER_ROOT}/mosquitto/log:/mosquitto/log"
+        networks:
+            - pi-services
+
+    adguardhome:
+        container_name: adguardhome
+        image: adguard/adguardhome:latest
+        restart: unless-stopped
+        ports:
+            - "53:53/tcp"
+            - "53:53/udp"
+            - "3000:3000/tcp"
+            - "8080:80/tcp"
+        volumes:
+            - "${DOCKER_ROOT}/adguardhome/work:/opt/adguardhome/work"
+            - "${DOCKER_ROOT}/adguardhome/conf:/opt/adguardhome/conf"
+            - "${DOCKER_ROOT}/npm/letsencrypt:/opt/adguardhome/conf/letsencrypt:ro"
+        networks:
+            - pi-services
+        extra_hosts:
+            - "${DOMAIN}:192.168.178.118"
+            - "secure.dns.freedom.nl:91.221.218.218"
+
+    prosody:
+        container_name: prosody
+        image: prosodyim/prosody:0.12
+        platform: linux/arm64/v8
+        restart: unless-stopped
+        volumes:
+            - "${DOCKER_ROOT}/prosody/config:/etc/prosody"
+            - "${DOCKER_ROOT}/npm/letsencrypt/archive/${NPM_CERT_ID}/privkey1.pem:/etc/prosody/certs/privkey.pem:ro"
+            - "${DOCKER_ROOT}/npm/letsencrypt/archive/${NPM_CERT_ID}/fullchain1.pem:/etc/prosody/certs/fullchain.pem:ro"
+            - "${DOCKER_ROOT}/prosody/data:/var/lib/prosody"
+            - "${DOCKER_ROOT}/prosody/uploads:/var/lib/prosody/uploads"
+        networks:
+            - pi-services
+
+    vaultwarden:
+        container_name: vaultwarden
+        image: vaultwarden/server:latest
+        restart: unless-stopped
+        environment:
+            SIGNUPS_ALLOWED: "${SIGNUPS_ALLOWED}"
+            WEBSOCKET_ENABLED: true
+            DOMAIN: https://vault.${DOMAIN}
+        volumes:
+            - "${DOCKER_ROOT}/vaultwarden:/data"
+        networks:
+            - pi-services
+
+    npm:
+        container_name: npm
+        image: jc21/nginx-proxy-manager:latest
+        restart: unless-stopped
+        ports:
+            - "80:80/tcp"
+            - "443:443/tcp"
+            - "5222:5222/tcp"
+            - "8181:81/tcp"
+            - "5269:5269/tcp"
+        volumes:
+            - "${DOCKER_ROOT}/npm/data:/data"
+            - "${DOCKER_ROOT}/npm/letsencrypt:/etc/letsencrypt"
+        networks:
+            - pi-services
+
+    watchtower:
+        container_name: watchtower
+        image: containrrr/watchtower
+        restart: unless-stopped
+        volumes:
+            - "/var/run/docker.sock:/var/run/docker.sock"
+        environment:
+            WATCHTOWER_POLL_INTERVAL: 86400
+            WATCHTOWER_CLEANUP: "true"
+        networks:
+            - pi-services
+
+    step-ca:
+        image: "smallstep/step-ca"
+        container_name: "step-ca"
+        networks:
+            - "pi-services"
+        ports:
+            - "9000:9000"
+        volumes:
+            - "${DOCKER_ROOT}/step-ca:/home/step"
+        environment:
+            - DOCKER_STEPCA_INIT_NAME=Sovereign CA
+            - DOCKER_STEPCA_INIT_DNS_NAMES=localhost,step-ca,{$STEP_CA_DNS_IP}
+            - DOCKER_STEPCA_INIT_PASSWORD="${STEPCA_PASSWORD}"
+            - DOCKER_STEPCA_INIT_PROVISIONER_NAME="${STEPCA_PROVISIONER_NAME}"
+            - DOCKER_STEPCA_INIT_PROVISIONER_PASSWORD="${STEPCA_PROVISIONER_PASSWORD}"
+        restart: "unless-stopped"
+
+    fail2ban:
+        image: crazymax/fail2ban:latest
+        container_name: fail2ban
+        restart: unless-stopped
+        network_mode: host
+        cap_add:
+            - NET_ADMIN
+            - NET_RAW
+        volumes:
+            - ./fail2ban/data:/data
+            - ./npm/data/logs:/var/log/npm:ro
+        environment:
+            TZ: "Europe/Amsterdam"
+            F2B_LOG_TARGET: "STDOUT"
+            F2B_LOG_LEVEL: "INFO"
+            F2B_DB_PURGE_AGE: "1d"
+
+    glances:
+        image: nicolargo/glances:latest
+        container_name: glances
+        restart: unless-stopped
+        pid: host
+        network_mode: host
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+        environment:
+            - "GLANCES_OPT=-w"
+    nextcloud-db:
+        image: mariadb:10.11
+        container_name: nextcloud-db
+        restart: always
+        command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+        env_file: .env
+        networks:
+            - nextcloud-internal
+        volumes:
+            - ./nextcloud/db:/var/lib/mysql
+        environment:
+            MYSQL_ROOT_PASSWORD: "${NEXTCLOUD_DB_ROOT_PASSWORD}"
+            MYSQL_PASSWORD: "${NEXTCLOUD_DB_PASSWORD}"
+            MYSQL_DATABASE: "${NEXTCLOUD_DB_NAME}"
+            MYSQL_USER: "${NEXTCLOUD_DB_USER}"
+
+    nextcloud-redis:
+        image: redis:alpine
+        container_name: nextcloud-redis
+        restart: always
+        networks:
+            - nextcloud-internal
+
+    nextcloud-app:
+        image: nextcloud:stable
+        container_name: nextcloud-app
+        restart: always
+        depends_on:
+            - nextcloud-db
+            - nextcloud-redis
+        env_file: .env
+        ports:
+            - "8088:80"
+        networks:
+            - pi-services
+            - nextcloud-internal
+        volumes:
+            - ./nextcloud/data:/var/www/html
+        environment:
+            MYSQL_PASSWORD: "${NEXTCLOUD_DB_PASSWORD}"
+            MYSQL_DATABASE: "${NEXTCLOUD_DB_NAME}"
+            MYSQL_USER: "${NEXTCLOUD_DB_USER}"
+            MYSQL_HOST: "nextcloud-db"
+            REDIS_HOST: "nextcloud-redis"
+            NEXTCLOUD_TRUSTED_DOMAINS: "${NEXTCLOUD_DOMAIN}"
+
+networks:
+    pi-services:
+        name: pi-services
+        driver: bridge
+    nextcloud-internal:
+        name: nextcload-internal
+        driver: bridge
+        internal: true

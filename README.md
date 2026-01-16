@@ -401,6 +401,25 @@ registering on your server, disable new signups in your configuration:
     Access to the Glances web interface (port 61208) is restricted 
     to the local trusted subnet via UFW.
 ---
+## Setup: Environment Variables
+    The stack relies on a `.env` file for centralized configuration. 
+    A template is provided as `.env.example`.
+
+    ### Instructions:
+    1. **Copy Template:** `cp .env.example .env`
+    2. **Network Config:** Ensure `STEP_CA_DNS_IP` reflects the 
+       static local IP of your Raspberry Pi to allow internal 
+       DNS resolution for Step-CA.
+    3. **Paths:** Update `DOCKER_ROOT` to match your absolute 
+       home directory path.
+    4. **Permissions:** Secure the file with `chmod 600 .env` to 
+       prevent other local users from reading your secrets.
+
+    ### Critical Note on Quotation:
+    While most variables use double quotes, `FRIGATE_RTSP_PASSWORD` 
+    requires **single quotes** to ensure special characters are not 
+    interpreted by the shell or the Frigate parser.
+---
 ## Why Sovereignty Matters
 As of late 2025, major European free ACME providers (like Buypass) have terminated their services. This project implements **Smallstep** as a response, allowing users to become their own Certificate Authority. Furthermore, it addresses the "IoT Leak" by ensuring that devices like security cameras cannot communicate with external servers, keeping sensitive visual data under the sole control of the owner.
 

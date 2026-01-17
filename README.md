@@ -4,100 +4,68 @@ SovereignStack is a project dedicated to regaining digital autonomy by hosting e
 
 ---
 
-## 1. Core Vision & Philosophy
+## 1. Project Structure
+
+| File | Purpose |
+| :--- | :--- |
+| `.env.example` | Template for environment variables and secrets. |
+| `README.md` | Main project documentation and architecture overview. |
+| `TROUBLESHOOTING.md` | Detailed guide for resolving common SSL, network, and browser issues. |
+| `backup_stack.sh` | Main script for database dumps and AES-256 encrypted archiving. |
+| `docker-compose.yaml` | Docker orchestration file defining all services and networks. |
+| `gen_cert.sh` | Utility to manually issue certificates from the internal Step-CA. |
+| `monitor_backup.sh` | "Dead Man's Switch" script to verify backup integrity and age. |
+| `push_backups_to_pc.sh` | Script to handle the SFTP transfer of backups to a remote workstation. |
+
+---
+
+## 2. Core Vision & Philosophy
 
 * **Sovereignty:** Reducing dependency on centralized infrastructure and foreign "cloud" providers.
 * **Privacy:** Keeping community and personal data (GDPR) within your own physical walls.
 * **IoT Autonomy:** Utilizing hardware (CCTV/Smart Home) without allowing it to "phone home" to external servers.
-* **Resilience:** Services remain functional and trusted even if external certificate authorities or providers fail.
-
----
-
-## 2. Prerequisites & Hardware
-
-### Recommended Hardware
-- **Host:** Raspberry Pi 5 (8GB recommended).
-- **Storage:** 1TB M.2 SSD (NVMe) for high I/O reliability and longevity.
-- **Cooling:** Active cooling required (Proportional fan control target: ~57°C).
-
-### Software Environment
-- **OS:** Raspberry Pi OS 64-bit.
-- **Docker Engine & Compose:**
-    ```bash
-    curl -sSL [https://get.docker.com](https://get.docker.com) | sh
-    sudo usermod -aG docker $USER
-    ```
-- **Dependencies:** `msmtp` (alerts), `iptables` (firewall), `curl` (healthchecks).
+* **Resilience:** Services remain functional even if external authorities fail.
 
 ---
 
 ## 3. Network Topology (Security in Layers)
 
-The stack employs three distinct network zones to ensure maximum isolation and performance:
+The stack employs three distinct network zones:
 
-### Zone 1: pi-services (Public/Frontend Bridge)
-The primary communication layer. The Reverse Proxy (`npm`) routes traffic via internal Docker DNS.
-- **Services:** `npm`, `homarr`, `vaultwarden`, `adguardhome`, `prosody`, `frigate`, `portainer`, `step-ca`, `watchtower`.
-
-### Zone 2: nextcloud-internal (Isolated Backend)
-A strictly internal network (`internal: true`) for the Nextcloud data-tier. No external internet access.
-- **Services:** `nextcloud-db`, `nextcloud-redis`, `nextcloud-app` (Dual-homed).
-
-### Zone 3: Host Mode (System Access)
-Services requiring direct interaction with the hardware or host network stack.
-- **Services:** `fail2ban` (firewall), `homeassistant` (discovery), `glances` (telemetry).
+1. **pi-services (Frontend Bridge):** Connects the Proxy (`npm`) to web-facing services.
+2. **nextcloud-internal (Isolated Backend):** Strictly internal network for database/cache.
+3. **Host Mode:** Services requiring direct system access (`fail2ban`, `glances`, `homeassistant`).
 
 ---
 
-## 4. Core Service Catalog
-
-| Service | Access URL | Purpose |
-| :--- | :--- | :--- |
-| **Homarr** | `home.piselfhosting.com` | Central Navigation Dashboard |
-| **Nginx Proxy Manager** | `http://[Pi-IP]:8181` | Gateway & SSL Termination |
-| **Nextcloud** | `cloud.piselfhosting.com` | Private Data & Mail Storage |
-| **AdGuard Home** | `dns.piselfhosting.com` | Network-wide DNS Privacy |
-| **Vaultwarden** | `vault.piselfhosting.com` | Secure Password Management |
-| **Frigate NVR** | `cam.piselfhosting.com` | Local AI Surveillance |
-| **Step-CA** | `port 9000` | Sovereign Certificate Authority |
-| **Prosody** | `chat.piselfhosting.com` | XMPP Decentralized Messaging |
-
----
-
-## 5. Security & Active Defense
+## 4. Security & Active Defense
 
 ### Access Control (NPM ACL)
-Access is governed by IP-based Whitelisting. The `Satisfy Any` directive ensures seamless access for the local subnet (`192.168.178.0/24`) and authorized static administrative WAN IPs, while challenging all others.
+Access is governed by IP-based Whitelisting. The `Satisfy Any` directive ensures seamless access for the local subnet (`192.168.178.0/24`) and authorized static administrative WAN IPs (e.g., Freedom Internet).
 
 ### Fail2Ban Integration
 - **Monitoring:** Scans NPM logs for 401/403 errors.
-- **Enforcement:** Automatically drops offending IPs at the kernel level via `iptables`.
-- **Alerting:** Dispatches real-time incident reports via Freedom.nl SMTP using `action_mwl`.
-
-### Host Firewall (UFW)
-A 'Default Deny' policy is active. Only ports 80, 443, 53, 9000, and 22 (restricted) are permitted.
+- **Enforcement:** Drops offending IPs via `iptables`.
+- **Alerting:** Real-time reports via SMTP relay.
 
 ---
 
-## 6. Maintenance & Data Persistence
+## 5. Maintenance & Backup Strategy
 
-### Automated Backups (Nightly 03:00)
-1. **Encryption:** `backup_stack.sh` creates AES-256 encrypted archives of the project root.
-2. **Transfer:** Archives are moved via SFTP to a primary workstation/peer node.
-3. **Dead Man's Switch:** `monitor_stack.sh` verifies backup integrity at 04:30 and alerts the administrator if a backup is missing.
-
-### Environment Configuration (.env)
-All secrets are centralized in `.env`. 
-> **Important:** Always wrap passwords in double quotes (e.g., `DB_PASSWORD="secret"`). For Frigate RTSP, use single quotes if special characters are present.
+### Nightly Pipeline (03:00 - 04:30)
+1. **Backup:** `backup_stack.sh` creates encrypted archives.
+2. **Transfer:** `push_backups_to_pc.sh` moves archives to an offsite/remote location.
+3. **Monitoring:** `monitor_backup.sh` verifies integrity and alerts if a backup is missing.
 
 ---
 
-## 7. App-Specific Hardening
+## 6. Deployment & Troubleshooting
+For detailed installation steps and common fixes (SSL, permissions, or gateway errors), please refer to:
+👉 **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)**
 
-### Home Assistant Proxy
-To prevent '400 Bad Request' errors, add the proxy subnet to `configuration.yaml`:
-```yaml
-http:
-  use_x_forwarded_for: true
-  trusted_proxies:
-    - 172.16.0.0/12
+---
+
+## 7. Project PiSelfhosting Roadmap
+- [ ] Implement Ansible playbooks for "One-Click" deployment.
+- [ ] Automate Step-CA certificate injection for non-proxied services.
+- [ ] Create Homarr widgets for live AdGuard and Frigate statistics.

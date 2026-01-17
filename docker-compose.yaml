@@ -192,10 +192,18 @@ services:
             - ./fail2ban/data:/data
             - ./npm/data/logs:/var/log/npm:ro
         environment:
-            TZ: "Europe/Amsterdam"
-            F2B_LOG_TARGET: "STDOUT"
-            F2B_LOG_LEVEL: "INFO"
-            F2B_DB_PURGE_AGE: "1d"
+            - TZ=${TZ}
+            - F2B_LOG_TARGET=STDOUT
+            - F2B_LOG_LEVEL=INFO
+            - F2B_DB_PURGE_AGE=1d
+            - SS_TPL_DESTMAIL=${BACKUP_EMAIL}
+            - SS_TPL_SENDERNAME=Sovereign-Security
+            - SS_TPL_SENDERMAIL=${BACKUP_EMAIL}
+            - SS_TPL_SMTPHOST=${SMTP_HOST}
+            - SS_TPL_SMTPPORT=${SMTP_PORT}
+            - SS_TPL_SMTPUSER=${BACKUP_EMAIL}
+            - SS_TPL_SMTPPASS=${BACKUP_PASSWORD}
+            - SS_TPL_SMTPTLS=${SMTP_TLS}
 
     glances:
         image: nicolargo/glances:latest

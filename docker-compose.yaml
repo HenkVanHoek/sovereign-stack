@@ -266,6 +266,20 @@ services:
             REDIS_HOST: "nextcloud-redis"
             NEXTCLOUD_TRUSTED_DOMAINS: "${NEXTCLOUD_DOMAIN}"
 
+    homarr:
+        container_name: homarr
+        image: ghcr.io/ajnart/homarr:latest
+        restart: unless-stopped
+        volumes:
+            - ./homarr/configs:/app/data/configs
+            - ./homarr/icons:/app/public/icons
+            - /var/run/docker.sock:/var/run/docker.sock # Optioneel: voor Docker-integratie
+        ports:
+            - "7575:7575"
+        environment:
+            - TZ=${TZ}
+        networks:
+            - pi-services
 networks:
     pi-services:
         name: pi-services

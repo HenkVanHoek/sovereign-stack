@@ -52,10 +52,16 @@ Access is governed by IP-based Whitelisting. The `Satisfy Any` directive ensures
 
 ## 5. Maintenance & Backup Strategy
 
-### Nightly Pipeline (03:00 - 04:30)
-1. **Backup:** `backup_stack.sh` creates encrypted archives.
-2. **Transfer:** `push_backups_to_pc.sh` moves archives to an offsite/remote location.
-3. **Monitoring:** `monitor_backup.sh` verifies integrity and alerts if a backup is missing.
+### Automated Nightly Pipeline
+To ensure data integrity, the backup and transfer processes are chained. This prevents the transfer script from attempting to move incomplete archives.
+
+**Crontab Configuration (`crontab -e`):**
+```bash
+# 1. Backup & Push (Starts at 03:00)
+0 3 * * * cd /home/hvhoek/docker && ./backup_stack.sh && ./push_backups_to_pc.sh >> ./backup_push.log 2>&1
+
+# 2. Dead Man's Switch Monitoring (Starts at 04:30)
+30 4 * * * /home/hvhoek/docker/monitor_backup.sh >> ./monitor.log 2>&1
 
 ---
 

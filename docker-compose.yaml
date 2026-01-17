@@ -125,7 +125,7 @@ services:
         environment:
             SIGNUPS_ALLOWED: "${SIGNUPS_ALLOWED}"
             WEBSOCKET_ENABLED: true
-            DOMAIN: https://vault.${DOMAIN}
+            DOMAIN: "https://vault.${DOMAIN}"
         volumes:
             - "${DOCKER_ROOT}/vaultwarden:/data"
         networks:

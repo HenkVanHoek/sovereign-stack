@@ -1,5 +1,15 @@
 #!/bin/bash
 # File: backup_stack.sh
+# Part of the sovereign-stack project.
+#
+# Copyright (C) 2026 Henk van Hoek
+# Licensed under the GNU General Public License v3.0 or later.
+# See the LICENSE file in the project root for full license text.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
 # Sovereign Stack Master Backup v2.2
 # Consolidation of Archive, Encryption, SFTP-Push, and Advanced Reporting.
 

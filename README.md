@@ -93,3 +93,9 @@ Your data is only as good as your ability to restore it.
 ## 10. Troubleshooting
 For common issues regarding SSL (HSTS), Docker permissions, or VPN routing:
 👉 **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)**
+
+---
+
+## 11. License
+This project is licensed under the **GPL-3.0 License** (or MIT). See the [LICENSE](./LICENSE) file for the full legal text. 
+Copyright (c) 2026 Henk van Hoek.

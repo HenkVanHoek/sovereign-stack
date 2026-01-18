@@ -1,8 +1,14 @@
 #!/bin/bash
 # File: install.sh
-# Copyright (c) 2026 Henk van Hoek
-# Licensed under the MIT License. See LICENSE file in project root.
-# sovereign-stack Master Installation & Setup Wizard v2.1
+# Part of the sovereign-stack project.
+#
+# Copyright (C) 2026 Henk van Hoek
+# Licensed under the GNU General Public License v3.0 or later.
+# See the LICENSE file in the project root for full license text.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 # ... [Stages 1 & 2 remain the same as previous version] ...
 

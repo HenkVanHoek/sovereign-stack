@@ -1,5 +1,15 @@
 #!/bin/bash
 # File: monitor_backup.sh
+# Part of the sovereign-stack project.
+#
+# Copyright (C) 2026 Henk van Hoek
+# Licensed under the GNU General Public License v3.0 or later.
+# See the LICENSE file in the project root for full license text.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
 # Sovereign Stack Monitor (Dead Man's Switch) - v2.2
 # Features: Environment-aware paths, High-Priority alerts, and System Load diagnostics.
 

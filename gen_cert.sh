@@ -1,5 +1,15 @@
 #!/bin/bash
-    # Sovereign Certificate Generator for Step-CA v2.2
+# Sovereign Certificate Generator for Step-CA v2.2
+# Part of the sovereign-stack project.
+#
+# Copyright (C) 2026 Henk van Hoek
+# Licensed under the GNU General Public License v3.0 or later.
+# See the LICENSE file in the project root for full license text.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
     # Fully generic: Uses .env variables for domain and provisioner logic.
 
     # 1. Load variables from the central .env file

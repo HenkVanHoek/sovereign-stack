@@ -11,7 +11,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 
-# sovereign-stack Master Installation & Setup Wizard v2.2
+# sovereign-stack Master Installation & Setup Wizard v2.4
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -48,7 +48,6 @@ update_var() {
     echo -e "\n[REQUIRED] ${BLUE}${prompt_text}${NC}"
     read -p "Value [${current_val:-EMPTY}]: " new_val
     if [ -n "$new_val" ]; then
-        # Ensure passwords/strings are quoted for YAML/Env safety
         sed -i "s|^${var_name}=.*|${var_name}=\"${new_val}\"|" "$ENV_FILE"
     fi
 }
@@ -57,7 +56,17 @@ update_var() {
 update_var "DOCKER_ROOT" "Absolute path to project (e.g., /home/hvhoek/docker)"
 update_var "BACKUP_EMAIL" "Alert email (Freedom.nl recommended)"
 update_var "BACKUP_PASSWORD" "Encryption key for AES-256 backups"
-update_var "PC_IP" "Static IP of your Windows Backup PC"
+
+# Remote Target Configuration
+update_var "PC_IP" "Static IP of your Backup Target machine"
+update_var "PC_USER" "SSH Username on the Backup Target"
+update_var "PC_BACKUP_PATH" "Path on Target (e.g., C:/Backups or /home/user/backups)"
+
+echo -e "\n[REQUIRED] ${BLUE}What is the Operating System of the backup target?${NC}"
+echo -e "Options: ${GREEN}windows${NC}, ${GREEN}linux${NC}, ${GREEN}mac${NC}"
+read -p "Value [windows]: " target_os
+target_os=${target_os:-windows}
+sed -i "s|^BACKUP_TARGET_OS=.*|BACKUP_TARGET_OS=\"${target_os,,}\"|" "$ENV_FILE"
 
 # Granular Backup Toggles
 echo -e "\n${BLUE}Step 3: Backup Granularity Settings${NC}"

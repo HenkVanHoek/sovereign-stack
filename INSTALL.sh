@@ -8,65 +8,68 @@
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 
-# ... [Stages 1 & 2 remain the same as previous version] ...
+# sovereign-stack Master Installation & Setup Wizard v2.2
 
-# --- STAGE 3: Environment Configuration (.env) ---
-echo -e "\n${BLUE}Step 3: Configuring Environment...${NC}"
-if [ ! -f "$ENV_FILE" ]; then
-    cp "$ENV_EXAMPLE" "$ENV_FILE"
-    echo -e "${YELLOW}Created .env from template.${NC}"
-fi
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+NC='\033[0m'
 
-update_var() {
-    local var_name=$1
-    local current_val=$2
-    local prompt_text=$3
-    echo -e "\n[REQUIRED] ${BLUE}${prompt_text}${NC}"
-    read -p "Value [${current_val:-EMPTY}]: " new_val
-    if [ -n "$new_val" ]; then
-        # Handle single vs double quotes based on variable name
-        if [[ "$var_name" == "FRIGATE_RTSP_PASSWORD" ]]; then
-            sed -i "s|^${var_name}=.*|${var_name}='${new_val}'|" "$ENV_FILE"
-        else
-            sed -i "s|^${var_name}=.*|${var_name}=\"${new_val}\"|" "$ENV_FILE"
-        fi
-        echo -e "${GREEN}Updated $var_name${NC}"
-    fi
-}
+ENV_FILE=".env"
+ENV_EXAMPLE=".env.example"
 
-# The expanded list matching your .env.example
-VARS_TO_CHECK=(
-    "DOCKER_ROOT|Absolute path to project folder (e.g., /home/hvhoek/docker)"
-    "DOMAIN|Primary domain (e.g., piselfhosting.com)"
-    "STEP_CA_DNS_IP|Local LAN IP of this Pi (e.g., 192.168.178.118)"
-    "BACKUP_EMAIL|Alert/Admin email (Freedom.nl recommended)"
-    "BACKUP_PASSWORD|Encryption key for AES-256 backups"
-    "PC_USER|Windows workstation username for SFTP"
-    "PC_IP|Static IP of your Windows workstation"
-    "PC_BACKUP_PATH|Target path on Windows (e.g., /D/SovereignBackups)"
-    "NEXTCLOUD_DB_ROOT_PASSWORD|MariaDB Root Password"
-    "NEXTCLOUD_DB_PASSWORD|Nextcloud Database User Password"
-    "NEXTCLOUD_DOMAIN|Nextcloud FQDN (e.g., cloud.piselfhosting.com)"
-    "STEPCA_PASSWORD|Step-CA Root Password"
-    "STEPCA_PROVISIONER_PASSWORD|Step-CA Provisioner Password"
-    "FRIGATE_RTSP_PASSWORD|CCTV Camera RTSP Password (Single quotes applied)"
-    "FRIGATE_MQTT_PASSWORD|MQTT Password for Frigate"
-    "HA_PASSWORD|Home Assistant Admin Password"
-    "HA_MQTT_PASSWORD|MQTT Password for Home Assistant"
-)
+echo -e "${BLUE}==========================================${NC}"
+echo -e "${BLUE}    sovereign-stack Installation Wizard   ${NC}"
+echo -e "${BLUE}==========================================${NC}"
 
-for entry in "${VARS_TO_CHECK[@]}"; do
-    IFS="|" read -r var_name description <<< "$entry"
-    # Extract current value
-    current_value=$(grep "^${var_name}=" "$ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
-    
-    # Trigger update if empty, placeholder, or example domain
-    if [[ -z "$current_value" ]] || [[ "$current_value" == *"<REPLACE_"* ]] || [[ "$current_value" == *"example.com"* ]] || [[ "$current_value" == *"<YOUR_"* ]]; then
-        update_var "$var_name" "$current_value" "$description"
+# --- STAGE 1: System Dependencies ---
+echo -e "\n${BLUE}Step 1: Checking System Dependencies...${NC}"
+PACKAGES=("msmtp" "msmtp-mta" "openssl" "curl" "ca-certificates" "ssh")
+
+for pkg in "${PACKAGES[@]}"; do
+    if dpkg -l | grep -q "^ii  $pkg "; then
+        echo -e "[${GREEN}OK${NC}] $pkg is installed."
+    else
+        echo -e "[${RED}MISSING${NC}] $pkg is not installed."
+        sudo apt-get update && sudo apt-get install -y "$pkg"
     fi
 done
 
-# --- STAGE 4: Final Confirmation & Deployment ---
-# ... [Stage 4 remains the same] ...
+# --- STAGE 2: Environment Configuration Wizard ---
+if [ ! -f "$ENV_FILE" ]; then cp "$ENV_EXAMPLE" "$ENV_FILE"; fi
+
+update_var() {
+    local var_name=$1
+    local prompt_text=$2
+    current_val=$(grep "^${var_name}=" "$ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+    echo -e "\n[REQUIRED] ${BLUE}${prompt_text}${NC}"
+    read -p "Value [${current_val:-EMPTY}]: " new_val
+    if [ -n "$new_val" ]; then
+        # Ensure passwords/strings are quoted for YAML/Env safety
+        sed -i "s|^${var_name}=.*|${var_name}=\"${new_val}\"|" "$ENV_FILE"
+    fi
+}
+
+# Core Variables
+update_var "DOCKER_ROOT" "Absolute path to project (e.g., /home/hvhoek/docker)"
+update_var "BACKUP_EMAIL" "Alert email (Freedom.nl recommended)"
+update_var "BACKUP_PASSWORD" "Encryption key for AES-256 backups"
+update_var "PC_IP" "Static IP of your Windows Backup PC"
+
+# Granular Backup Toggles
+echo -e "\n${BLUE}Step 3: Backup Granularity Settings${NC}"
+read -p "Include Frigate Video Data in backups? (true/false) [false]: " frig_toggle
+frig_toggle=${frig_toggle:-false}
+sed -i "s|^INCLUDE_FRIGATE_DATA=.*|INCLUDE_FRIGATE_DATA=\"${frig_toggle}\"|" "$ENV_FILE"
+
+read -p "Include Nextcloud User Data in backups? (true/false) [true]: " nc_toggle
+nc_toggle=${nc_toggle:-true}
+sed -i "s|^INCLUDE_NEXTCLOUD_DATA=.*|INCLUDE_NEXTCLOUD_DATA=\"${nc_toggle}\"|" "$ENV_FILE"
+
+# --- STAGE 4: Finalize ---
+chmod 600 "$ENV_FILE"
+chmod +x *.sh
+echo -e "\n${GREEN}Setup complete. Configuration saved to .env${NC}"

@@ -20,7 +20,7 @@ echo "--- Backup Started: $(date) ---" >> "$LOG_FILE"
 docker exec nextcloud-db mariadb-dump -u nextcloud -p"$NEXTCLOUD_DB_PASSWORD" nextcloud > "$DB_EXPORT"
 
 # 2. Archive & Encrypt
-sudo tar -cvzf - --exclude='./backups' --exclude='./frigate/storage' -C "$DOCKER_ROOT" . | \
+sudo tar -cvzf - --exclude='./backups' --exclude='./storage' -C "$DOCKER_ROOT" . | \
 openssl enc -aes-256-cbc -salt -pbkdf2 -pass "pass:$BACKUP_PASSWORD" -out "${BACKUP_DIR}/${FILENAME}"
 
 # 3. SFTP Push to PC

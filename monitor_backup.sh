@@ -11,48 +11,71 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 
-# Cross-Platform Dead Man's Switch v2.5
+# Cross-Platform Dead Man's Switch v3.1
+set -u
 
+LOG_FILE="/home/hvhoek/docker/backups/cron.log"
 ENV_PATH="/home/hvhoek/docker/.env"
-[ -f "$ENV_PATH" ] && export $(grep -v '^#' "$ENV_PATH" | xargs)
+
+# Robust Environment Loader
+if [ -f "$ENV_PATH" ]; then
+    set -a
+    source <(sed 's/\r$//' "$ENV_PATH")
+    set +a
+else
+    echo "$(date): ERROR - .env file not found at $ENV_PATH" | tee -a "$LOG_FILE"
+    exit 1
+fi
 
 # Determine the remote command based on OS
 case "${BACKUP_TARGET_OS}" in
     windows)
-        # Windows PowerShell logic (escaped for Bash)
-        CMD="powershell.exe -Command \"(Get-ChildItem -Path '${PC_BACKUP_PATH}' -Filter 'sovereign_stack_*.enc' | Where-Object { \$_.LastWriteTime -gt (Get-Date).AddMinutes(-120) }).Count\""
+        # Remove leading slash for PowerShell (e.g., /H:/ becomes H:/)
+        WIN_PATH="${PC_BACKUP_PATH#/}"
+        CMD="powershell.exe -Command \"(Get-ChildItem -Path '${WIN_PATH}' -Filter 'sovereign_stack_*.enc' | Where-Object { \$_.LastWriteTime -gt (Get-Date).AddMinutes(-120) }).Count\""
         ;;
     linux|mac)
-        # Linux/Mac find logic
         CMD="find ${PC_BACKUP_PATH} -name 'sovereign_stack_*.enc' -mmin -120 | wc -l"
         ;;
     *)
-        echo "Error: Unknown BACKUP_TARGET_OS: ${BACKUP_TARGET_OS}"
+        echo "$(date): ERROR - Unknown BACKUP_TARGET_OS: '${BACKUP_TARGET_OS}'" | tee -a "$LOG_FILE"
         exit 1
         ;;
 esac
 
-# Execute SSH command and strip potential Windows carriage returns
-REMOTE_COUNT=$(ssh -o ConnectTimeout=15 "${PC_USER}@${PC_IP}" "$CMD" | tr -d '\r' | xargs)
+# Execute SSH command and check status
+REMOTE_COUNT=$(ssh -o ConnectTimeout=15 "${PC_USER}@${PC_IP}" "$CMD" 2>/dev/null | tr -d '\r' | xargs)
+SSH_EXIT_CODE=$?
 
-# Safety check for empty result (e.g. connection timeout)
-[[ -z "$REMOTE_COUNT" ]] && REMOTE_COUNT=0
+if [ "$SSH_EXIT_CODE" -ne 0 ]; then
+    STATUS="CRITICAL: SSH connection failed to ${PC_IP} (Exit code: $SSH_EXIT_CODE)"
+    FILE_FOUND=false
+elif [[ -z "$REMOTE_COUNT" ]] || [ "$REMOTE_COUNT" -eq 0 ]; then
+    STATUS="FAILURE: No fresh backup files found on ${PC_IP}"
+    FILE_FOUND=false
+else
+    STATUS="SUCCESS: Found $REMOTE_COUNT fresh backup(s) on ${PC_IP}."
+    FILE_FOUND=true
+fi
 
-if [ "$REMOTE_COUNT" -eq 0 ]; then
-    # FAILURE: Send High-Priority Alert
+# Log the result to local cron.log AND show on screen
+echo "$(date): $STATUS" | tee -a "$LOG_FILE"
+
+# Send alert on failure
+if [ "$FILE_FOUND" = false ]; then
     {
         echo "To: ${BACKUP_EMAIL}"
-        echo "Subject: ⚠️ ALERT: Sovereign Backup NOT FOUND on PC"
+        echo "Subject: ⚠️ ALERT: Sovereign Backup Status - $STATUS"
         echo "X-Priority: 1 (Highest)"
         echo "Importance: High"
+        echo "MIME-Version: 1.0"
+        echo "Content-Type: text/plain; charset=utf-8"
         echo ""
         echo "The Dead Man's Switch triggered at $(date)."
-        echo "No backup file found on the ${BACKUP_TARGET_OS} machine (${PC_IP})."
+        echo "Status: $STATUS"
         echo "Path checked: ${PC_BACKUP_PATH}"
         echo ""
-        echo "Last 10 lines of local cron.log:"
-        tail -n 10 "/home/hvhoek/docker/backups/cron.log"
+        echo "Last 10 lines of cron.log:"
+        tail -n 10 "$LOG_FILE"
     } | msmtp "${BACKUP_EMAIL}"
-else
-    echo "Monitor Success: Found $REMOTE_COUNT fresh backup(s) on ${BACKUP_TARGET_OS} PC."
 fi

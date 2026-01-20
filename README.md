@@ -1,6 +1,10 @@
-# sovereign-stack v2.3: The Sovereign Blueprint
+# sovereign-stack v3.0: The Sovereign Blueprint
 
 The **sovereign-stack** is a project dedicated to regaining digital autonomy by hosting essential services on a local Raspberry Pi 5. It is a robust, privacy-first infrastructure blueprint designed for those who believe that data sovereignty is a fundamental right.
+
+This stack is designed to be a **complete replacement for proprietary ecosystems**. By deploying this blueprint, you can replace centralized communication tools like **WhatsApp** and **Signal** with your own **Prosody (XMPP)** infrastructure, and transition away from **Microsoft Office/365** or **Google Workspace** by utilizing the full power of **Nextcloud**.
+
+Although it is tested and running on a Raspberry Pi 5 with a 1TB NVMe SSD, it can be easily installed on other hardware using Debian Linux with small adaptations, as Raspberry Pi OS is a Debian variant.
 
 ---
 
@@ -14,41 +18,43 @@ In an era of centralized "cloud" monopolies and constant data harvesting, this p
 
 ---
 
-## 2. The Sovereign Service Suite (17+ Services)
+## 2. The Sovereign Service Suite (19+ Services)
 The stack is a curated collection of industry-standard services, optimized to run harmoniously on the Raspberry Pi 5.
 
 ### Core Infrastructure & Cloud
 | Service | Role | Purpose |
 | :--- | :--- | :--- |
-| **Nextcloud** | Cloud Hub | File sync, contacts, calendar, and collaborative office. |
-| **MariaDB** | SQL Database | High-performance backend for Nextcloud and other services. |
-| **Redis** | In-memory Cache | Acceleration for Nextcloud file locking and session handling. |
-| **Nginx Proxy Manager** | Reverse Proxy | Manages SSL (Let's Encrypt/Step-CA) and secure traffic routing. |
+| **[Nextcloud](https://nextcloud.com/)** | Cloud Hub | **Office/365 Replacement:** File sync, contacts, calendar, and collaborative office. |
+| **[Forgejo](https://forgejo.org/)** | Git Service | **GitHub Replacement:** Self-hosted software forge for local code and version control. |
+| **[MariaDB](https://mariadb.org/)** | SQL Database | High-performance backend for Nextcloud and other services. |
+| **[Redis](https://redis.io/)** | In-memory Cache | Acceleration for Nextcloud file locking and session handling. |
+| **[Nginx Proxy Manager](https://nginxproxymanager.com/)** | Reverse Proxy | Manages SSL (Let's Encrypt/Step-CA) and secure traffic routing. |
 
-### Security & Privacy
+### Communication & Privacy
 | Service | Role | Purpose |
 | :--- | :--- | :--- |
-| **AdGuard Home** | DNS & Ad-block | Network-wide ad-blocking and privacy-focused DNS (DoH/DoT). |
-| **Step-CA** | Internal PKI | Your own Certificate Authority for internal TLS/SSL management. |
-| **Vaultwarden** | Password Manager | Bitwarden-compatible server for secure credential storage. |
-| **Fail2Ban** | Active Defense | Automated intrusion prevention; blocks malicious IP addresses. |
+| **[Prosody](https://prosody.im/)** | XMPP Server | **WhatsApp/Signal Replacement:** Private, lightweight, and federated instant messaging. |
+| **[AdGuard Home](https://adguard.com/en/adguard-home/overview.html)** | DNS & Ad-block | Network-wide ad-blocking and privacy-focused DNS (DoH/DoT). |
+| **[Step-CA](https://smallstep.com/certificates/)** | Internal PKI | Your own Certificate Authority for internal TLS/SSL management. |
+| **[Vaultwarden](https://github.com/dani-garcia/vaultwarden)** | Password Manager | Bitwarden-compatible server for secure credential storage. |
+| **[Fail2Ban](https://www.fail2ban.org/)** | Active Defense | Automated intrusion prevention; blocks malicious IP addresses. |
 
 ### Home Automation & Intelligence
 | Service | Role | Purpose |
 | :--- | :--- | :--- |
-| **Home Assistant** | Automation Engine | The brain of the local smart home (Core/Container version). |
-| **Frigate NVR** | AI Surveillance | Real-time object detection and local video recording (NVR). |
-| **Mosquitto** | MQTT Broker | Lightweight communication protocol for IoT sensors and devices. |
-| **Zigbee2MQTT** | Device Bridge | Integrates Zigbee devices into the stack without proprietary hubs. |
+| **[Home Assistant](https://www.home-assistant.io/)** | Automation Engine | The brain of the local smart home (Core/Container version). |
+| **[Frigate NVR](https://frigate.video/)** | AI Surveillance | Real-time object detection and local video recording (NVR). |
+| **[Mosquitto](https://mosquitto.org/)** | MQTT Broker | Lightweight communication protocol for IoT sensors and devices. |
+| **[Zigbee2MQTT](https://www.zigbee2mqtt.io/)** | Device Bridge | Integrates Zigbee devices into the stack without proprietary hubs. |
 
 ### Management & Monitoring
 | Service | Role | Purpose |
 | :--- | :--- | :--- |
-| **Homarr** | Service Dashboard | A unified 'Single Pane of Glass' to access and monitor all services. |
-| **Portainer** | Container GUI | Visual management of all Docker containers and images. |
-| **Glances** | System Monitor | Real-time dashboard for CPU, RAM, Disk, and Temperature. |
-| **Watchtower** | Auto-Update | Ensures all containers stay up-to-date with security patches. |
-| **msmtp** | Alert Pipeline | SMTP client to dispatch high-priority health alerts (Freedom.nl). |
+| **[Homarr](https://homarr.dev/)** | Service Dashboard | A unified 'Single Pane of Glass' to access and monitor all services. |
+| **[Portainer](https://www.portainer.io/)** | Container GUI | Visual management of all Docker containers and images. |
+| **[Glances](https://nicolargo.github.io/glances/)** | System Monitor | Real-time dashboard for CPU, RAM, Disk, and Temperature. |
+| **[Watchtower](https://containrrr.dev/watchtower/)** | Auto-Update | Ensures all containers stay up-to-date with security patches. |
+| **[msmtp](https://marlam.de/msmtp/)** | Alert Pipeline | SMTP client to dispatch high-priority health alerts (Freedom.nl). |
 
 ---
 
@@ -82,6 +88,13 @@ The stack is designed for a single-command installation on Raspberry Pi OS:
 
 The wizard will guide you through setting up your domain, secrets, and **Backup Granularity**. For detailed post-install steps (MQTT/Step-CA Fingerprints), see **[INSTALL.md](./INSTALL.md)**.
 
+### Permission Management
+To ensure proper service operation and backup accessibility, configuration folders should be owned by the local user:
+
+    sudo chown -R $USER:$USER ~/docker/homeassistant
+    sudo find ~/docker/homeassistant -type d -exec chmod 755 {} +
+    sudo find ~/docker/homeassistant -type f -exec chmod 644 {} +
+
 ---
 
 ## 6. Security & Active Defense
@@ -93,20 +106,22 @@ The wizard will guide you through setting up your domain, secrets, and **Backup 
 
 ## 7. Maintenance & Selective Backup Pipeline
 
-
-
-Backups are automated via Cron (`03:00` daily). The pipeline is "chained" to ensure data integrity while respecting storage constraints:
+Backups are automated via Cron (`03:00` daily). The pipeline is robust and handles Windows-specific path requirements:
 
 1.  **Database Dump:** MariaDB is exported to a flat `.sql` file for clean restoration.
 2.  **Granular Exclusions:** Toggle specific data via `.env` (`INCLUDE_FRIGATE_DATA` / `INCLUDE_NEXTCLOUD_DATA`).
-3.  **Archive & Encrypt:** Secured with **AES-256 (PBKDF2)** using OpenSSL.
-4.  **SFTP Push:** Archives are transferred to a secure workstation (Windows/Linux/Mac).
-5.  **Clean State:** Raw database folders are excluded to prevent binary corruption.
+3.  **Archive & Encrypt:** Secured with **AES-256-CBC** using **PBKDF2** and OpenSSL.
+4.  **SFTP Push:** Archives are transferred to a secure workstation. For Windows targets, use the `/DRIVE:/path` notation in `.env`.
+5.  **Robust Loading:** Scripts use a specialized environment loader to strip Windows carriage returns (`\r`), ensuring stability across editing environments.
 
 ---
 
 ## 8. Monitoring (Dead Man's Switch)
-At `04:30`, the `monitor_backup.sh` script performs a **Remote Verification**. It is cross-platform compatible (**Windows, Linux, or macOS**) and verifies the file actually arrived on the target machine. If no fresh file is found within 90 minutes, a **High-Priority Alert** is dispatched via msmtp.
+At `04:30`, the `monitor_backup.sh` script performs a **Remote Verification**. It is cross-platform compatible and utilizes a "Path Correction" logic to handle differences between SFTP and PowerShell pathing:
+
+* **Windows Integration:** Automatically converts `/H:/` style paths to `H:/` for PowerShell validation.
+* **Freshness Check:** Verifies that a backup file exists and was created within the last 120 minutes.
+* **Alerting:** If verification fails or SSH is unreachable, a **High-Priority Alert** (X-Priority: 1) is dispatched via msmtp.
 
 ---
 
@@ -127,11 +142,27 @@ The recovery process follows a **Selective Injection** method:
 ---
 
 ## 11. Troubleshooting
-For common issues regarding SSL (HSTS), Docker permissions, or VPN routing:
+For common issues regarding SSL (HSTS), Docker permissions, or Windows regeleinden (`\r`) in configuration files:
 👉 **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)**
 
 ---
 
-## 12. License
-This project is licensed under the **GPL-3.0 License**. 
-Copyright (c) 2026 Henk van Hoek.
+## 12. Sovereign Communication (Prosody Clients)
+
+To leverage the privacy guarantees of the Prosody XMPP server, we recommend the following clients that support end-to-end encryption (**OMEMO**):
+
+### Mobile Devices (Android & iOS)
+* **Android:** **[Conversations](https://conversations.im/)** is the gold standard.
+* **iOS:** **[Monal](https://monal-im.org/)** or **[Siskin IM](https://siskin.im/)**.
+
+### Desktop Devices (Linux, Mac & Windows)
+* **Linux:** **[Gajim](https://gajim.org/)** or **[Dino](https://dino.im/)**.
+* **macOS:** **[Beagle IM](https://beagle.im/)** or **Monal**.
+* **Windows:** **[Gajim](https://gajim.org/)** provides excellent OMEMO support.
+
+---
+
+## 13. License
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+Copyright (c) 2026 Henk van Hoek. Licensed under the **GPL-3.0 License**.

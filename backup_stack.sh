@@ -1,4 +1,3 @@
-#!/bin/bash
 # File: backup_stack.sh
 # Part of the sovereign-stack project.
 #
@@ -11,12 +10,16 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 
-# sovereign-stack Selective Backup Pipeline v2.5
+# sovereign-stack Selective Backup Pipeline v3.2
+set -u
 
-# Load Environment
+# Load Environment and strip Windows hidden characters (\r)
 ENV_PATH="/home/hvhoek/docker/.env"
 if [ -f "$ENV_PATH" ]; then
-    export $(grep -v '^#' "$ENV_PATH" | xargs)
+    # More robust way to load .env in Bash
+    set -a
+    source <(sed 's/\r$//' "$ENV_PATH")
+    set +a
 else
     echo "Error: .env file not found at $ENV_PATH"
     exit 1
@@ -32,55 +35,116 @@ DB_EXPORT="${DOCKER_ROOT}/nextcloud/nextcloud_db_export.sql"
 # Ensure backup directory exists
 mkdir -p "$BACKUP_DIR"
 
-echo "--- Backup Routine Started: $(date) ---" >> "$LOG_FILE"
+# Define a logging function to ensure everything goes to the log file
+log_message() {
+    echo "$(date): $1" | tee -a "$LOG_FILE"
+}
 
-# 1. Database Export (Always include SQL for safety)
-# We export the database to a flat file so it can be safely backed up while running.
-echo "Exporting Nextcloud Database..." >> "$LOG_FILE"
+log_message "--- Backup Routine Started ---"
+
+# 1. System Health Check
+RAW_TEMP=$(vcgencmd measure_temp | grep -oP '\d+\.\d+')
+TEMP_INT=${RAW_TEMP%.*}
+TEMP_DISPLAY="${RAW_TEMP}'C"
+DISK_USAGE=$(df -h "${DOCKER_ROOT}" | awk 'NR==2 {print $5}')
+
+log_message "System Status: Temp=$TEMP_DISPLAY | Disk=$DISK_USAGE"
+
+# 2. Database Export
+log_message "Exporting Nextcloud Database..."
 docker exec nextcloud-db mariadb-dump -u nextcloud -p"$NEXTCLOUD_DB_PASSWORD" \
-    nextcloud > "$DB_EXPORT"
+    nextcloud > "$DB_EXPORT" 2>> "$LOG_FILE"
 
-# 2. Build Dynamic Excludes
-# We always exclude local backups, git history, and raw DB files (redundant to SQL)
-# Raw DB files are excluded because they are often locked/inconsistent during copy.
-EXCLUDES="--exclude='./backups' --exclude='./.git' --exclude='./nextcloud/db' --exclude='./portainer/data'"
+# 3. Build Dynamic Excludes
+EXCLUDES=(
+    "--exclude=backups"
+    "--exclude=.git"
+    "--exclude=nextcloud/db"
+    "--exclude=portainer/data"
+)
 
-# Logic for Frigate Video Data
-if [ "$INCLUDE_FRIGATE_DATA" != "true" ]; then
-    EXCLUDES="$EXCLUDES --exclude='./storage'"
-    echo "Mode: Excluding Frigate Videos" >> "$LOG_FILE"
-else
-    echo "Mode: Including Frigate Videos" >> "$LOG_FILE"
+if [ "${INCLUDE_FRIGATE_DATA:-false}" != "true" ]; then
+    EXCLUDES+=("--exclude=storage")
+    log_message "Mode: Excluding Frigate Videos (storage folder)"
 fi
 
-# Logic for Nextcloud User Data
-if [ "$INCLUDE_NEXTCLOUD_DATA" != "true" ]; then
-    EXCLUDES="$EXCLUDES --exclude='./nextcloud/data'"
-    echo "Mode: Excluding Nextcloud User Files" >> "$LOG_FILE"
-else
-    echo "Mode: Including Nextcloud User Files" >> "$LOG_FILE"
+if [ "${INCLUDE_NEXTCLOUD_DATA:-false}" != "true" ]; then
+    EXCLUDES+=("--exclude=nextcloud/data")
+    log_message "Mode: Excluding Nextcloud User Files"
 fi
 
-# 3. Archive & Encrypt (AES-256-CBC with PBKDF2)
-echo "Archiving and Encrypting..." >> "$LOG_FILE"
-sudo tar -cvzf - $EXCLUDES -C "$DOCKER_ROOT" . | \
+# 4. Archive & Encrypt
+log_message "Archiving and Encrypting..."
+sudo tar "${EXCLUDES[@]}" -cvzf - -C "$DOCKER_ROOT" . 2>> "$LOG_FILE" | \
 openssl enc -aes-256-cbc -salt -pbkdf2 -pass "pass:$BACKUP_PASSWORD" \
-    -out "${BACKUP_DIR}/${FILENAME}"
+    -out "${BACKUP_DIR}/${FILENAME}" 2>> "$LOG_FILE"
 
-# 4. SFTP Transfer to Remote PC
-echo "Transferring to ${BACKUP_TARGET_OS} PC at ${PC_IP}..." >> "$LOG_FILE"
-sftp -b - "${PC_USER}@${PC_IP}" <<EOF >> "$LOG_FILE" 2>&1
-put "${BACKUP_DIR}/${FILENAME}" "${PC_BACKUP_PATH}/"
-quit
-EOF
+# 5. SFTP Transfer
+log_message "Transferring to ${BACKUP_TARGET_OS} PC..."
+BATCH_FILE=$(mktemp)
+# Ensure the path starts with a slash to indicate an absolute Windows path
+REMOTE_PATH="${PC_BACKUP_PATH}"
+[[ "$REMOTE_PATH" != /* ]] && REMOTE_PATH="/$REMOTE_PATH"
 
-# Check SFTP Exit Status
-if [ $? -eq 0 ]; then
-    echo "SUCCESS: Backup transferred to PC." >> "$LOG_FILE"
+echo "put ${BACKUP_DIR}/${FILENAME} ${REMOTE_PATH}/" > "$BATCH_FILE"
+echo "quit" >> "$BATCH_FILE"
+
+sftp -b "$BATCH_FILE" "${PC_USER}@${PC_IP}" >> "$LOG_FILE" 2>&1
+SFTP_STATUS=$?
+rm "$BATCH_FILE"
+
+# 6. Local Cleanup
+log_message "Cleaning up local archives older than 7 days..."
+find "$BACKUP_DIR" -name "sovereign_stack_*.enc" -mtime +7 -delete >> "$LOG_FILE" 2>&1
+
+# 7. Final Status & Email Priority Logic
+PRIORITY="Normal"
+PRIORITY_HEADER="3"
+
+if [ $SFTP_STATUS -eq 0 ]; then
+    STATUS_MSG="SUCCESS: Backup transferred to PC."
+    SUBJECT="✅ Sovereign Backup Success ($TEMP_DISPLAY)"
 else
-    echo "ERROR: SFTP Transfer failed. Check connection/permissions." >> "$LOG_FILE"
+    STATUS_MSG="ERROR: Backup transfer FAILED. Check cron.log for details."
+    SUBJECT="❌ ALERT: Sovereign Backup FAILED"
+    PRIORITY="High"
+    PRIORITY_HEADER="1"
 fi
 
-# 5. Local Cleanup (Keep 7 days of local encrypted files)
-find "$BACKUP_DIR" -name "sovereign_stack_*.enc" -mtime +7 -delete
-echo "--- Backup Routine Finished: $(date) ---" >> "$LOG_FILE"
+if [ "$TEMP_INT" -ge 80 ]; then
+    SUBJECT="⚠️ CRITICAL TEMP: Sovereign Backup Alert ($TEMP_DISPLAY)"
+    PRIORITY="High"
+    PRIORITY_HEADER="1"
+fi
+
+log_message "$STATUS_MSG"
+log_message "--- Backup Routine Finished ---"
+
+# 8. Send Email
+TEMP_MAIL=$(mktemp)
+{
+    echo "To: ${BACKUP_EMAIL}"
+    echo "Subject: ${SUBJECT}"
+    echo "X-Priority: ${PRIORITY_HEADER}"
+    echo "Importance: ${PRIORITY}"
+    echo "MIME-Version: 1.0"
+    echo "Content-Type: text/plain; charset=utf-8"
+    echo ""
+    echo "Sovereign Health & Backup Report"
+    echo "==============================="
+    echo "Date:        $(date)"
+    echo "Temperature: $TEMP_DISPLAY"
+    echo "Disk Usage:  $DISK_USAGE"
+    echo "Status:      ${STATUS_MSG}"
+    echo "Filename:    ${FILENAME}"
+    echo ""
+    echo "FULL LOG FOR THIS RUN:"
+    echo "------------------------------------------------------------"
+    # Extract last run using the header we defined
+    sed -n "/--- Backup Routine Started/,/--- Backup Routine Finished/p" "$LOG_FILE" | tail -n 50
+    echo "------------------------------------------------------------"
+    echo "End of Report."
+} > "$TEMP_MAIL"
+
+cat "$TEMP_MAIL" | msmtp "${BACKUP_EMAIL}"
+rm "$TEMP_MAIL"

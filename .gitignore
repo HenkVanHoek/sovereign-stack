@@ -1,0 +1,48 @@
+# --- Security & Secrets ---
+# NEVER commit the .env file containing passwords and keys
+.env
+*.enc
+*.sql
+*.crt
+*.key
+*.bak
+
+# --- Data & Storage (Excluded from Git) ---
+# These are handled by the backup script, not Git
+backups/
+storage/
+nextcloud/data/
+nextcloud/db/
+vaultwarden/data/
+adguardhome/work/
+portainer/data/
+mosquitto/data/
+mosquitto/log/
+npm/data/
+prosody/data/
+prosody/uploads/
+
+# Missing services from previous list
+step-ca/
+homarr/configs/
+homarr/data/
+homeassistant/
+fail2ban/data/
+frigate/db/
+frigate/recordings/
+
+# --- IDE & System Files ---
+# PyCharm settings (we keep these local)
+.idea/
+*.iml
+.DS_Store
+thumbs.db
+
+# Python overhead (if any)
+__pycache__/
+venv/
+.venv/
+
+# --- Temporary Files ---
+*.tmp
+*.log

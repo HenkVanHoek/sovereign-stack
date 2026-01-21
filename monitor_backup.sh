@@ -4,22 +4,22 @@
 #
 # Copyright (C) 2026 Henk van Hoek
 # Licensed under the GNU General Public License v3.0 or later.
-# See the LICENSE file in the project root for full license text.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 
-# Cross-Platform Dead Man's Switch v3.1
+# Cross-Platform Dead Man's Switch v3.2
 set -u
 
 LOG_FILE="/home/hvhoek/docker/backups/cron.log"
 ENV_PATH="/home/hvhoek/docker/.env"
 
-# Robust Environment Loader
+# 1. Robust Environment Loader
 if [ -f "$ENV_PATH" ]; then
     set -a
+    # Gebruik van process substitution vereist BASH
     source <(sed 's/\r$//' "$ENV_PATH")
     set +a
 else
@@ -27,7 +27,10 @@ else
     exit 1
 fi
 
-# Determine the remote command based on OS
+# 2. Clean IP address (remove http/https prefix if present)
+CLEAN_IP=$(echo "$PC_IP" | sed -e 's|^http://||' -e 's|^https://||')
+
+# 3. Determine the remote command based on OS
 case "${BACKUP_TARGET_OS}" in
     windows)
         # Remove leading slash for PowerShell (e.g., /H:/ becomes H:/)
@@ -43,25 +46,33 @@ case "${BACKUP_TARGET_OS}" in
         ;;
 esac
 
-# Execute SSH command and check status
-REMOTE_COUNT=$(ssh -o ConnectTimeout=15 "${PC_USER}@${PC_IP}" "$CMD" 2>/dev/null | tr -d '\r' | xargs)
+# 4. Execute SSH command and capture the exit code of SSH specifically
+# We capture raw output first to separate SSH status from command output
+RAW_OUTPUT=$(ssh -o ConnectTimeout=15 "${PC_USER}@${CLEAN_IP}" "$CMD" 2>/dev/null)
 SSH_EXIT_CODE=$?
 
+# Clean the output (remove carriage returns and whitespace)
+REMOTE_COUNT=$(echo "$RAW_OUTPUT" | tr -d '\r' | xargs)
+
+# 5. Determine Status
 if [ "$SSH_EXIT_CODE" -ne 0 ]; then
-    STATUS="CRITICAL: SSH connection failed to ${PC_IP} (Exit code: $SSH_EXIT_CODE)"
+    STATUS="CRITICAL: SSH connection failed to ${CLEAN_IP} (Check if PC is ON or IP is correct)"
     FILE_FOUND=false
-elif [[ -z "$REMOTE_COUNT" ]] || [ "$REMOTE_COUNT" -eq 0 ]; then
-    STATUS="FAILURE: No fresh backup files found on ${PC_IP}"
+elif [[ -z "$REMOTE_COUNT" ]] || ! [[ "$REMOTE_COUNT" =~ ^[0-9]+$ ]]; then
+    STATUS="FAILURE: Unexpected response from ${CLEAN_IP}. Could not verify backup."
+    FILE_FOUND=false
+elif [ "$REMOTE_COUNT" -eq 0 ]; then
+    STATUS="FAILURE: No fresh backup files found on ${CLEAN_IP} in the last 120 min."
     FILE_FOUND=false
 else
-    STATUS="SUCCESS: Found $REMOTE_COUNT fresh backup(s) on ${PC_IP}."
+    STATUS="SUCCESS: Found $REMOTE_COUNT fresh backup(s) on ${CLEAN_IP}."
     FILE_FOUND=true
 fi
 
-# Log the result to local cron.log AND show on screen
+# 6. Log the result
 echo "$(date): $STATUS" | tee -a "$LOG_FILE"
 
-# Send alert on failure
+# 7. Send alert on failure
 if [ "$FILE_FOUND" = false ]; then
     {
         echo "To: ${BACKUP_EMAIL}"
@@ -73,7 +84,7 @@ if [ "$FILE_FOUND" = false ]; then
         echo ""
         echo "The Dead Man's Switch triggered at $(date)."
         echo "Status: $STATUS"
-        echo "Path checked: ${PC_BACKUP_PATH}"
+        echo "Path checked: ${PC_BACKUP_PATH} op host ${CLEAN_IP}"
         echo ""
         echo "Last 10 lines of cron.log:"
         tail -n 10 "$LOG_FILE"

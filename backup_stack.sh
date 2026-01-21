@@ -1,22 +1,15 @@
+#!/bin/bash
 # File: backup_stack.sh
 # Part of the sovereign-stack project.
 #
 # Copyright (C) 2026 Henk van Hoek
 # Licensed under the GNU General Public License v3.0 or later.
-# See the LICENSE file in the project root for full license text.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
 
-# sovereign-stack Selective Backup Pipeline v3.2
 set -u
 
-# Load Environment and strip Windows hidden characters (\r)
+# Load Environment
 ENV_PATH="/home/hvhoek/docker/.env"
 if [ -f "$ENV_PATH" ]; then
-    # More robust way to load .env in Bash
     set -a
     source <(sed 's/\r$//' "$ENV_PATH")
     set +a
@@ -32,10 +25,8 @@ BACKUP_DIR="${DOCKER_ROOT}/backups"
 LOG_FILE="${BACKUP_DIR}/cron.log"
 DB_EXPORT="${DOCKER_ROOT}/nextcloud/nextcloud_db_export.sql"
 
-# Ensure backup directory exists
 mkdir -p "$BACKUP_DIR"
 
-# Define a logging function to ensure everything goes to the log file
 log_message() {
     echo "$(date): $1" | tee -a "$LOG_FILE"
 }
@@ -82,14 +73,15 @@ openssl enc -aes-256-cbc -salt -pbkdf2 -pass "pass:$BACKUP_PASSWORD" \
 # 5. SFTP Transfer
 log_message "Transferring to ${BACKUP_TARGET_OS} PC..."
 BATCH_FILE=$(mktemp)
-# Ensure the path starts with a slash to indicate an absolute Windows path
 REMOTE_PATH="${PC_BACKUP_PATH}"
 [[ "$REMOTE_PATH" != /* ]] && REMOTE_PATH="/$REMOTE_PATH"
 
 echo "put ${BACKUP_DIR}/${FILENAME} ${REMOTE_PATH}/" > "$BATCH_FILE"
 echo "quit" >> "$BATCH_FILE"
 
-sftp -b "$BATCH_FILE" "${PC_USER}@${PC_IP}" >> "$LOG_FILE" 2>&1
+# SSH commando's gebruiken geen http:// prefix
+CLEAN_IP=$(echo "$PC_IP" | sed 's|http://||g')
+sftp -b "$BATCH_FILE" "${PC_USER}@${CLEAN_IP}" >> "$LOG_FILE" 2>&1
 SFTP_STATUS=$?
 rm "$BATCH_FILE"
 
@@ -140,7 +132,6 @@ TEMP_MAIL=$(mktemp)
     echo ""
     echo "FULL LOG FOR THIS RUN:"
     echo "------------------------------------------------------------"
-    # Extract last run using the header we defined
     sed -n "/--- Backup Routine Started/,/--- Backup Routine Finished/p" "$LOG_FILE" | tail -n 50
     echo "------------------------------------------------------------"
     echo "End of Report."

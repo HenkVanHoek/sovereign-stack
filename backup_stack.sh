@@ -4,12 +4,20 @@
 #
 # Copyright (C) 2026 Henk van Hoek
 # Licensed under the GNU General Public License v3.0 or later.
+# See the LICENSE file in the project root for full license text.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 
+# sovereign-stack Selective Backup Pipeline v3.2
 set -u
 
-# Load Environment
+# Load Environment and strip Windows hidden characters (\r)
 ENV_PATH="/home/hvhoek/docker/.env"
 if [ -f "$ENV_PATH" ]; then
+    # More robust way to load .env in Bash
     set -a
     source <(sed 's/\r$//' "$ENV_PATH")
     set +a
@@ -73,6 +81,7 @@ openssl enc -aes-256-cbc -salt -pbkdf2 -pass "pass:$BACKUP_PASSWORD" \
 # 5. SFTP Transfer
 log_message "Transferring to ${BACKUP_TARGET_OS} PC..."
 BATCH_FILE=$(mktemp)
+# Ensure the path starts with a slash to indicate an absolute Windows path
 REMOTE_PATH="${PC_BACKUP_PATH}"
 [[ "$REMOTE_PATH" != /* ]] && REMOTE_PATH="/$REMOTE_PATH"
 
@@ -132,6 +141,7 @@ TEMP_MAIL=$(mktemp)
     echo ""
     echo "FULL LOG FOR THIS RUN:"
     echo "------------------------------------------------------------"
+    # Extract last run using the header we defined
     sed -n "/--- Backup Routine Started/,/--- Backup Routine Finished/p" "$LOG_FILE" | tail -n 50
     echo "------------------------------------------------------------"
     echo "End of Report."

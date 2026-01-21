@@ -4,6 +4,11 @@
 #
 # Copyright (C) 2026 Henk van Hoek
 # Licensed under the GNU General Public License v3.0 or later.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 
 # Cross-Platform Dead Man's Switch v3.2
 set -u
@@ -14,7 +19,6 @@ ENV_PATH="/home/hvhoek/docker/.env"
 # 1. Robust Environment Loader
 if [ -f "$ENV_PATH" ]; then
     set -a
-    # Gebruik van process substitution vereist BASH
     source <(sed 's/\r$//' "$ENV_PATH")
     set +a
 else
@@ -46,10 +50,6 @@ esac
 RAW_OUTPUT=$(ssh -o ConnectTimeout=15 "${PC_USER}@${CLEAN_IP}" "$CMD" 2>/dev/null)
 SSH_EXIT_CODE=$?
 
-# Clean the output (remove carriage returns and whitespace)
-REMOTE_COUNT=$(echo "$RAW_OUTPUT" | tr -d '\r' | xargs)
-
-# 5. Determine Status
 if [ "$SSH_EXIT_CODE" -ne 0 ]; then
     STATUS="CRITICAL: SSH connection failed to ${CLEAN_IP} (Check if PC is ON or IP is correct)"
     FILE_FOUND=false

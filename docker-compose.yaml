@@ -191,6 +191,7 @@ services:
         volumes:
             - ./fail2ban/data:/data
             - ./npm/data/logs:/var/log/npm:ro
+            - ${DOCKER_ROOT}/forgejo/data/gitea/log:/var/log/forgejo:ro
         environment:
             - TZ=${TZ}
             - F2B_LOG_TARGET=STDOUT
@@ -280,6 +281,42 @@ services:
             - TZ=${TZ}
         networks:
             - pi-services
+
+    forgejo-db:
+        container_name: forgejo-db
+        image: mariadb:10.11
+        restart: always
+        networks:
+            - pi-services
+        environment:
+            MYSQL_ROOT_PASSWORD: "${NEXTCLOUD_DB_ROOT_PASSWORD}"
+            MYSQL_PASSWORD: "${FORGEJO_DB_PASSWORD}"
+            MYSQL_DATABASE: "${FORGEJO_DB_NAME}"
+            MYSQL_USER: "${FORGEJO_DB_USER}"
+        volumes:
+            - "${DOCKER_ROOT}/forgejo/db:/var/lib/mysql"
+
+    forgejo:
+        container_name: forgejo
+        image: codeberg.org/forgejo/forgejo:14
+        restart: unless-stopped
+        depends_on:
+            - forgejo-db
+        networks:
+            - pi-services
+        environment:
+            - USER_UID=1000
+            - USER_GID=1000
+            - FORGEJO__database__DB_TYPE=mysql
+            - FORGEJO__database__HOST=forgejo-db:3306
+            - FORGEJO__database__NAME=${FORGEJO_DB_NAME}
+            - FORGEJO__database__USER=${FORGEJO_DB_USER}
+            - FORGEJO__database__PASSWD=${FORGEJO_DB_PASSWORD}
+        volumes:
+            - "${DOCKER_ROOT}/forgejo/data:/data"
+            - /etc/localtime:/etc/localtime:ro
+        ports:
+            - "2222:22"
 networks:
     pi-services:
         name: pi-services

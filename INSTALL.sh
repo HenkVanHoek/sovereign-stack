@@ -1,5 +1,5 @@
 #!/bin/bash
-# File: install.sh
+# File: INSTALL.sh
 # Part of the sovereign-stack project.
 #
 # Copyright (C) 2026 Henk van Hoek [cite: 2026-01-21]
@@ -8,10 +8,10 @@
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the [cite: 2026-01-21]
 # GNU General Public License for more details. [cite: 2026-01-21]
 
-# sovereign-stack Master Installation & Setup Wizard v2.5 [cite: 2026-01-21]
+# sovereign-stack Master Installation & Setup Wizard v2.6 [cite: 2026-01-22]
 
 set -u
 GREEN='\033[0;32m'
@@ -28,7 +28,6 @@ echo -e "${BLUE}==========================================${NC}"
 
 # --- STAGE 1: System Dependencies ---
 echo -e "\n${BLUE}Step 1: Checking System Dependencies...${NC}"
-# Including dependencies for encryption, mailing, and automation
 PACKAGES=("msmtp" "msmtp-mta" "openssl" "curl" "ca-certificates" "ssh" "cron")
 
 for pkg in "${PACKAGES[@]}"; do
@@ -48,7 +47,8 @@ update_var() {
     local prompt_text=$2
     current_val=$(grep "^${var_name}=" "$ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
     echo -e "\n[REQUIRED] ${BLUE}${prompt_text}${NC}"
-    read -p "Value [${current_val:-EMPTY}]: " new_val
+    # Added -r to prevent mangling backslashes in paths [cite: 2026-01-21]
+    read -r -p "Value [${current_val:-EMPTY}]: " new_val
     if [ -n "$new_val" ]; then
         # Ensure YAML/Env values are quoted [cite: 2025-11-03]
         sed -i "s|^${var_name}=.*|${var_name}=\"${new_val}\"|" "$ENV_FILE"
@@ -63,12 +63,12 @@ update_var "PC_IP" "Static IP of your Backup Target machine"
 update_var "PC_USER" "SSH Username on the Backup Target"
 update_var "PC_BACKUP_PATH" "Path on Target (e.g., C:/Backups)"
 
-read -p "Backup Target OS (windows/linux/mac) [windows]: " target_os
+# Added -r here as well for consistency [cite: 2026-01-21]
+read -r -p "Backup Target OS (windows/linux/mac) [windows]: " target_os
 target_os=${target_os:-windows}
 sed -i "s|^BACKUP_TARGET_OS=.*|BACKUP_TARGET_OS=\"${target_os,,}\"|" "$ENV_FILE"
 
 # --- STAGE 3: SSH Key Setup ---
-# Setup for passwordless cron automation
 echo -e "\n${BLUE}Step 3: Setting up SSH Key-Based Authentication...${NC}"
 if [ ! -f ~/.ssh/id_rsa ]; then
     echo "Generating new SSH key..."
@@ -83,16 +83,17 @@ echo -e "Please enter the password for ${PC_USER_VAL}@${PC_IP_CLEAN} to enable a
 ssh-copy-id -o ConnectTimeout=10 "${PC_USER_VAL}@${PC_IP_CLEAN}"
 
 # --- STAGE 4: Cron Automation ---
-# Schedules backup at 04:00 and monitor at 04:30
 echo -e "\n${BLUE}Step 4: Configuring Automation (Crontab)...${NC}"
 D_ROOT=$(grep "^DOCKER_ROOT=" "$ENV_FILE" | cut -d'"' -f2)
 
-(crontab -l 2>/dev/null | grep -v "backup_stack.sh" | grep -v "monitor_backup.sh"; echo "00 03 * * * /bin/bash ${D_ROOT}/backup_stack.sh >> ${D_ROOT}/backups/cron.log 2>&1
+(crontab -l 2>/dev/null | grep -v "backup_stack.sh" | grep -v "monitor_backup.sh"; \
+echo "00 03 * * * /bin/bash ${D_ROOT}/backup_stack.sh >> ${D_ROOT}/backups/cron.log 2>&1
 30 04 * * * /bin/bash ${D_ROOT}/monitor_backup.sh >> ${D_ROOT}/backups/cron.log 2>&1") | crontab -
 
 # --- STAGE 5: Finalize ---
 chmod 600 "$ENV_FILE"
-chmod +x *.sh [cite: 2026-01-21]
+# Added . glob prefix to prevent dash-prefixed filenames from being interpreted as options [cite: 2026-01-22]
+chmod +x ./*.sh # [cite: 2026-01-21, 2026-01-22]
 echo -e "\n${GREEN}Setup complete! Configuration saved to .env${NC}"
-echo -e "1. Backups scheduled for 04:00 daily."
+echo -e "1. Backups scheduled for 03:00 daily."
 echo -e "2. Monitoring (Dead Man's Switch) scheduled for 04:30 daily."

@@ -1,20 +1,60 @@
 #!/bin/bash
-# Script om permissies te herstellen voor de Nextcloud Docker container
-CONTAINER="nextcloud-app"
+# File: fix-nextcloud-perms.sh
+# Part of the sovereign-stack project.
+#
+# Copyright (C) 2026 Henk van Hoek [cite: 2026-01-22]
+# Licensed under the GNU General Public License v3.0 or later.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. [cite: 2026-01-22]
 
-echo "Stap 1: Eigenaarschap herstellen naar www-data (UID 33)..."
-docker exec -u root $CONTAINER chown -R www-data:www-data /var/www/html
+# sovereign-stack Nextcloud Permission Fixer v2.0 [cite: 2026-01-22]
+set -u
 
-echo "Stap 2: Map-permissies instellen (750)..."
-docker exec -u root $CONTAINER find /var/www/html/ -type d -exec chmod 750 {} \;
+# 1. Load Environment Dynamically [cite: 2026-01-22]
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+ENV_FILE="${SCRIPT_DIR}/.env"
 
-echo "Stap 3: Bestands-permissies instellen (640)..."
-docker exec -u root $CONTAINER find /var/www/html/ -type f -exec chmod 640 {} \;
+if [ -f "$ENV_FILE" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    source <(sed 's/\r$//' "$ENV_FILE")
+    set +a
+else
+    echo "Error: .env file not found at $ENV_FILE"
+    exit 1
+fi
 
-echo "Stap 4: .ocdata controlebestand verifiëren..."
-docker exec -u www-data $CONTAINER touch /var/www/html/data/.ocdata
+# 2. Define Paths
+NC_DIR="${DOCKER_ROOT}/nextcloud"
+NC_DATA_DIR="${NC_DIR}/data"
 
-echo "Stap 5: Container herstarten om wijzigingen te activeren..."
-docker restart $CONTAINER
+echo "--- Sovereign Stack: Nextcloud Permission Fixer ---"
 
-echo "Klaar! Controleer je browser op [https://nextcloud.piselfhosting.com](https://nextcloud.piselfhosting.com)"
+# 3. Validation
+if [ ! -d "$NC_DIR" ]; then
+    echo "Error: Nextcloud directory not found at $NC_DIR"
+    exit 1
+fi
+
+# 4. Apply Permissions
+echo "Step 1/2: Setting ownership for Nextcloud app files..."
+# Standard files are owned by the host user [cite: 2026-01-22]
+sudo chown -R "$USER:$USER" "$NC_DIR"
+
+if [ -d "$NC_DATA_DIR" ]; then
+    echo "Step 2/2: Setting ownership for Nextcloud data (UID 33/www-data)..."
+    # The data directory MUST be owned by the webserver user [cite: 2026-01-22]
+    sudo chown -R 33:33 "$NC_DATA_DIR"
+
+    echo "Applying secure directory and file masks..."
+    sudo find "$NC_DATA_DIR" -type d -exec chmod 750 {} \;
+    sudo find "$NC_DATA_DIR" -type f -exec chmod 640 {} \;
+else
+    echo "[SKIP] Nextcloud data directory not found. Only app files updated."
+fi
+
+echo "---"
+echo "SUCCESS: Permissions fixed for Nextcloud."
+echo "Recommendation: If problems persist, restart the container: docker compose restart nextcloud-app"

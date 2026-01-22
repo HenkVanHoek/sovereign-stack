@@ -75,7 +75,21 @@ Test the connection from the Pi. You should be logged in without being prompted 
 
 ---
 
-## 4. Scheduling Automated Backups
+## 4. Automated Dependency Management (JIT)
+
+The sovereign-stack is designed to be self-maintaining. To ensure the backup pipeline works out-of-the-box, even on fresh OS installs, we utilize Just-In-Time (JIT) installation.
+
+### 4.1 Automated Tool Installation
+The `backup_stack.sh` script automatically detects missing dependencies. For instance, if `wakeonlan` (required to wake your backup PC) is missing, the script will automatically execute:
+
+    sudo apt-get update && sudo apt-get install -y wakeonlan
+
+### 4.2 Sudo Privileges
+For this automated maintenance to work, the user executing the scripts must have sudo privileges. This ensures that maintenance tasks do not fail silently due to missing system binaries.
+
+---
+
+## 5. Scheduling Automated Backups
 
 To ensure your data is safe, use the system cron table to schedule the backup pipeline. We use `vi` as the default editor.
 
@@ -94,7 +108,7 @@ To ensure your data is safe, use the system cron table to schedule the backup pi
 
 ---
 
-## 5. Prosody: Replacing WhatsApp/Signal
+## 6. Prosody: Replacing WhatsApp/Signal
 
 To use Prosody as your primary communication server, you must create user accounts and ensure the server is discoverable.
 
@@ -111,7 +125,7 @@ To use Prosody as your primary communication server, you must create user accoun
 
 ---
 
-## 6. Nextcloud: Replacing Microsoft Office
+## 7. Nextcloud: Replacing Microsoft Office
 
 To transition away from Office 365, Nextcloud needs to be optimized for performance and collaborative editing.
 
@@ -135,7 +149,7 @@ To transition away from Office 365, Nextcloud needs to be optimized for performa
 
 ---
 
-## 7. Step-CA: Managing Your Internal Trust
+## 8. Step-CA: Managing Your Internal Trust
 
 The **Step-CA** service acts as your sovereign Certificate Authority.
 
@@ -149,51 +163,51 @@ The **Step-CA** service acts as your sovereign Certificate Authority.
 
 ---
 
-## 8. Post-Installation & Dashboard Setup
+## 9. Post-Installation & Dashboard Setup
 
 After deployment, your services are running, but the **Homarr** dashboard needs to be configured to display them.
 
-### 8.1 Verify Container Status
+### 9.1 Verify Container Status
 First, ensure all services started correctly via the terminal:
 
     docker compose ps
 
-### 8.2 Initial Homarr Configuration
+### 9.2 Initial Homarr Configuration
 1.  Navigate to `http://<your-pi-ip>:7575`.
 2.  Complete the **Onboarding Wizard** to create your administrator account.
 3.  **Enable Docker Integration:**
-    * Go to **Management** -> **Integrations**.
+    * Go to **Management** → **Integrations**.
     * Add a new **Docker** integration.
     * Since the Docker socket is mounted in the `docker-compose.yaml`, Homarr will automatically discover your containers.
 4.  **Create your Board:**
-    * Go to **Management** -> **Boards** and create your primary "Sovereign Dashboard."
+    * Go to **Management** → **Boards** and create your primary "Sovereign Dashboard."
     * Use the **"Add from Docker"** feature in edit mode to pull in your running services as tiles.
 
 ---
 
-## 9. Homarr Service Integration Reference
+## 10. Homarr Service Integration Reference
 
 When manually adding or editing tiles in Homarr, use the following reference for icons, internal URLs, and official documentation.
 
-### 9.1 Tile Configuration Table
+### 10.1 Tile Configuration Table
 
-| Service | Icon Name | Internal Docker URL | Official Website |
-| :--- | :--- | :--- | :--- |
-| **Nextcloud** | `nextcloud` | `http://nextcloud-app:80` | [nextcloud.com](https://nextcloud.com) |
-| **Forgejo** | `forgejo` | `http://forgejo:3000` | [forgejo.org](https://forgejo.org) |
-| **Prosody** | `prosody` | `http://prosody:5280/admin` | [prosody.im](https://prosody.im) |
-| **AdGuard Home** | `adguard-home` | `http://adguardhome:3000` | [adguard.com](https://adguard.com/en/adguard-home/overview.html) |
-| **Vaultwarden** | `bitwarden` | `http://vaultwarden:80` | [github.com/dani-garcia/vaultwarden](https://github.com/dani-garcia/vaultwarden) |
-| **Home Assistant** | `home-assistant` | `http://homeassistant:8123` | [home-assistant.io](https://www.home-assistant.io) |
-| **Frigate** | `frigate` | `http://frigate:5000` | [frigate.video](https://frigate.video) |
-| **Nginx Proxy Manager** | `nginx-proxy-manager` | `http://npm:81` | [nginxproxymanager.com](https://nginxproxymanager.com) |
-| **Portainer** | `portainer` | `http://portainer:9000" | [portainer.io](https://www.portainer.io) |
+| Service                 | Icon Name             | Internal Docker URL         | Official Website                                                                 |
+|:------------------------|:----------------------|:----------------------------|:---------------------------------------------------------------------------------|
+| **Nextcloud**           | `nextcloud`           | `http://nextcloud-app:80`   | [nextcloud.com](https://nextcloud.com)                                           |
+| **Forgejo**             | `forgejo`             | `http://forgejo:3000`       | [forgejo.org](https://forgejo.org)                                               |
+| **Prosody**             | `prosody`             | `http://prosody:5280/admin` | [prosody.im](https://prosody.im)                                                 |
+| **AdGuard Home**        | `adguard-home`        | `http://adguardhome:3000`   | [adguard.com](https://adguard.com/en/adguard-home/overview.html)                 |
+| **Vaultwarden**         | `bitwarden`           | `http://vaultwarden:80`     | [github.com/dani-garcia/vaultwarden](https://github.com/dani-garcia/vaultwarden) |
+| **Home Assistant**      | `home-assistant`      | `http://homeassistant:8123` | [home-assistant.io](https://www.home-assistant.io)                               |
+| **Frigate**             | `frigate`             | `http://frigate:5000`       | [frigate.video](https://frigate.video)                                           |
+| **Nginx Proxy Manager** | `nginx-proxy-manager` | `http://npm:81`             | [nginxproxymanager.com](https://nginxproxymanager.com)                           |
+| **Portainer**           | `portainer`           | `http://portainer:9000`     | [portainer.io](https://www.portainer.io)                                         |
 
-### 9.2 Adding Widgets
+### 10.2 Adding Widgets
 For a true sovereign overview, add these widgets to your Homarr board:
 * **Docker Widget:** Real-time CPU/RAM usage of every container.
 * **System Health (Dash.):** Summary of your Pi 5 load, SSD space, and temperature.
 * **Nextcloud Calendar:** Connect to your CalDAV URL for a sovereign schedule overview.
 
-### 9.3 Saving your Layout
-To ensure your dashboard configuration is safe, export your layout via **Management -> Boards -> Export**. It is recommended to save this as `homarr_layout.json` in your project root.
+### 10.3 Saving your Layout
+To ensure your dashboard configuration is safe, export your layout via **Management → Boards → Export**. It is recommended to save this as `homarr_layout.json` in your project root.

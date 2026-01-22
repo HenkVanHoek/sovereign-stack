@@ -124,7 +124,7 @@ services:
         restart: unless-stopped
         environment:
             SIGNUPS_ALLOWED: "${SIGNUPS_ALLOWED}"
-            WEBSOCKET_ENABLED: true
+            WEBSOCKET_ENABLED: "true"
             DOMAIN: "https://vault.${DOMAIN}"
         volumes:
             - "${DOCKER_ROOT}/vaultwarden:/data"
@@ -156,7 +156,7 @@ services:
         volumes:
             - "/var/run/docker.sock:/var/run/docker.sock"
         environment:
-            WATCHTOWER_POLL_INTERVAL: 86400
+            WATCHTOWER_POLL_INTERVAL: "86400"
             WATCHTOWER_CLEANUP: "true"
         networks:
             - pi-services
@@ -173,8 +173,8 @@ services:
         volumes:
             - "${DOCKER_ROOT}/step-ca:/home/step"
         environment:
-            - DOCKER_STEPCA_INIT_NAME=Sovereign CA
-            - DOCKER_STEPCA_INIT_DNS_NAMES=localhost,step-ca,${STEP_CA_DNS_IP}
+            - DOCKER_STEPCA_INIT_NAME="Sovereign CA"
+            - DOCKER_STEPCA_INIT_DNS_NAMES="localhost,step-ca,${STEP_CA_DNS_IP}"
             - DOCKER_STEPCA_INIT_PASSWORD="${STEPCA_PASSWORD}"
             - DOCKER_STEPCA_INIT_PROVISIONER_NAME="${STEPCA_PROVISIONER_NAME}"
             - DOCKER_STEPCA_INIT_PROVISIONER_PASSWORD="${STEPCA_PROVISIONER_PASSWORD}"
@@ -189,22 +189,22 @@ services:
             - NET_ADMIN
             - NET_RAW
         volumes:
-            - ./fail2ban/data:/data
-            - ./npm/data/logs:/var/log/npm:ro
-            - ${DOCKER_ROOT}/forgejo/data/gitea/log:/var/log/forgejo:ro
+            - "${DOCKER_ROOT}/fail2ban/data:/data"
+            - "${DOCKER_ROOT}/npm/data/logs:/var/log/npm:ro"
+            - "${DOCKER_ROOT}/forgejo/data/gitea/log:/var/log/forgejo:ro"
         environment:
-            - TZ=${TZ}
-            - F2B_LOG_TARGET=STDOUT
-            - F2B_LOG_LEVEL=INFO
-            - F2B_DB_PURGE_AGE=1d
-            - SS_TPL_DESTMAIL=${BACKUP_EMAIL}
-            - SS_TPL_SENDERNAME=Sovereign-Security
-            - SS_TPL_SENDERMAIL=${BACKUP_EMAIL}
-            - SS_TPL_SMTPHOST=${SMTP_HOST}
-            - SS_TPL_SMTPPORT=${SMTP_PORT}
-            - SS_TPL_SMTPUSER=${BACKUP_EMAIL}
-            - SS_TPL_SMTPPASS=${BACKUP_PASSWORD}
-            - SS_TPL_SMTPTLS=${SMTP_TLS}
+            - TZ="${TZ}"
+            - F2B_LOG_TARGET="STDOUT"
+            - F2B_LOG_LEVEL="INFO"
+            - F2B_DB_PURGE_AGE="1d"
+            - SS_TPL_DESTMAIL="${BACKUP_EMAIL}"
+            - SS_TPL_SENDERNAME="Sovereign-Security"
+            - SS_TPL_SENDERMAIL="${BACKUP_EMAIL}"
+            - SS_TPL_SMTPHOST="${SMTP_HOST}"
+            - SS_TPL_SMTPPORT="${SMTP_PORT}"
+            - SS_TPL_SMTPUSER="${BACKUP_EMAIL}"
+            - SS_TPL_SMTPPASS="${BACKUP_PASSWORD}"
+            - SS_TPL_SMTPTLS="${SMTP_TLS}"
 
     glances:
         image: nicolargo/glances:latest
@@ -260,12 +260,21 @@ services:
         volumes:
             - ./nextcloud/data:/var/www/html
         environment:
-            MYSQL_PASSWORD: "${NEXTCLOUD_DB_PASSWORD}"
-            MYSQL_DATABASE: "${NEXTCLOUD_DB_NAME}"
-            MYSQL_USER: "${NEXTCLOUD_DB_USER}"
-            MYSQL_HOST: "nextcloud-db"
-            REDIS_HOST: "nextcloud-redis"
-            NEXTCLOUD_TRUSTED_DOMAINS: "${NEXTCLOUD_DOMAIN}"
+            - MYSQL_PASSWORD="${NEXTCLOUD_DB_PASSWORD}"
+            - MYSQL_DATABASE="${NEXTCLOUD_DB_NAME}"
+            - MYSQL_USER="${NEXTCLOUD_DB_USER}"
+            - MYSQL_HOST="nextcloud-db"
+            - REDIS_HOST="nextcloud-redis"
+            - NEXTCLOUD_TRUSTED_DOMAINS="${NEXTCLOUD_DOMAIN}"
+            - MAIL_FROM_ADDRESS="${NEXTCLOUD_MAIL_FROM_ADDRESS}"
+            - MAIL_DOMAIN="${NEXTCLOUD_MAIL_DOMAIN}"
+            - SMTP_HOST="${NEXTCLOUD_MAIL_SMTPHOST}"
+            - SMTP_PORT="${NEXTCLOUD_MAIL_SMTPPORT}"
+            - SMTP_SECURE="${NEXTCLOUD_MAIL_SMTPSECURE}"
+            - SMTP_AUTHTYPE="LOGIN"
+            - SMTP_AUTH="${NEXTCLOUD_MAIL_SMTPAUTH}"
+            - SMTP_NAME="${NEXTCLOUD_MAIL_SMTPNAME}"
+            - SMTP_PASSWORD="${NEXTCLOUD_MAIL_SMTPPASSWORD}"
 
     homarr:
         container_name: homarr
@@ -274,11 +283,11 @@ services:
         volumes:
             - ./homarr/configs:/app/data/configs
             - ./homarr/icons:/app/public/icons
-            - /var/run/docker.sock:/var/run/docker.sock # Optioneel: voor Docker-integratie
+            - /var/run/docker.sock:/var/run/docker.sock
         ports:
             - "7575:7575"
         environment:
-            - TZ=${TZ}
+            - TZ="${TZ}"
         networks:
             - pi-services
 
@@ -305,13 +314,13 @@ services:
         networks:
             - pi-services
         environment:
-            - USER_UID=1000
-            - USER_GID=1000
-            - FORGEJO__database__DB_TYPE=mysql
-            - FORGEJO__database__HOST=forgejo-db:3306
-            - FORGEJO__database__NAME=${FORGEJO_DB_NAME}
-            - FORGEJO__database__USER=${FORGEJO_DB_USER}
-            - FORGEJO__database__PASSWD=${FORGEJO_DB_PASSWORD}
+            - USER_UID="1000"
+            - USER_GID="1000"
+            - FORGEJO__database__DB_TYPE="mysql"
+            - FORGEJO__database__HOST="forgejo-db:3306"
+            - FORGEJO__database__NAME="${FORGEJO_DB_NAME}"
+            - FORGEJO__database__USER="${FORGEJO_DB_USER}"
+            - FORGEJO__database__PASSWD="${FORGEJO_DB_PASSWORD}"
         volumes:
             - "${DOCKER_ROOT}/forgejo/data:/data"
             - /etc/localtime:/etc/localtime:ro

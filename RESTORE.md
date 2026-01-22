@@ -1,79 +1,75 @@
 # Part of the sovereign-stack project.
 #
-# Copyright (C) 2026 Henk van Hoek
+# Copyright (C) 2026 Henk van Hoek [cite: 2026-01-22]
 # Licensed under the GNU General Public License v3.0 or later.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
+# GNU General Public License for more details. [cite: 2026-01-21]
 
-# sovereign-stack Selective Backup Pipeline 
+# Restoration Guide: sovereign-stack [cite: 2025-06-11, 2026-01-22]
 
-# Restoration Guide: sovereign-stack [cite: 2025-06-11]
-
-This guide explains how to restore your services from the encrypted archives created by `backup_stack.sh`. 
+This guide explains how to restore your services from the encrypted archives created by `backup_stack.sh`. You can use the automated `restore_stack.sh` script or follow these manual steps. [cite: 2026-01-22]
 
 ## 1. Prerequisites
-* A fresh installation of the **sovereign-stack** (run `install.sh` first).
-* Your encryption password (stored in `.env` as `BACKUP_PASSWORD`).
-* **Backup Access:** Access to your backup target (Windows, Linux, or Mac) to retrieve the `.enc` archive.
-* **OpenSSL:** Ensure OpenSSL is installed on the Pi (standard on Raspberry Pi OS).
+* A fresh installation of the **sovereign-stack** (run `INSTALL.sh` first). [cite: 2026-01-22]
+* Your encryption password (stored in `.env` as `BACKUP_PASSWORD`). [cite: 2026-01-22]
+* **Backup Access:** Retrieve the `.enc` archive from your remote target. [cite: 2026-01-22]
+* **OpenSSL:** Ensure OpenSSL is installed on the Pi (v3.x requires PBKDF2 support). [cite: 2026-01-22]
 
 ---
 
 ## 2. Step-by-Step Recovery
 
 ### Step A: Decrypt the Archive
-Move your backup file to the Pi (e.g., via SCP or SFTP) and decrypt it. Replace `DATE` with your actual filename:
+Move your backup file to the Pi (e.g., via SCP or SFTP) and decrypt it. Replace `FILENAME` with your actual file: [cite: 2026-01-22]
 
     openssl enc -d -aes-256-cbc -salt -pbkdf2 \
         -pass "pass:YOUR_BACKUP_PASSWORD" \
-        -in sovereign_stack_DATE.tar.gz.enc \
+        -in FILENAME.tar.gz.enc \
         -out restored_stack.tar.gz
 
 ### Step B: Extract Configuration
-Extract the files directly into your project directory. We use `sudo` to ensure that files created by Docker can be overwritten:
+Extract the files into your project directory. We use `/home/${USER}/docker` as the standard path: [cite: 2026-01-22]
 
-    sudo tar -xzvf restored_stack.tar.gz -C /${USER}/docker
+    sudo tar -xzvf restored_stack.tar.gz -C /home/${USER}/docker
 
 ### Step C: Restore Nextcloud Database
-1. **Start the Database Container:** docker compose up -d nextcloud-db
-2. **Wait 10-15 seconds** for the database to initialize.
-3. **Import the SQL Export:**
+1. **Start the Database Container:** `docker compose up -d nextcloud-db` [cite: 2026-01-22]
+2. **Wait 15 seconds** for the database to initialize. [cite: 2026-01-22]
+3. **Import the SQL Export:** [cite: 2026-01-22]
     
-    cat /${USER}/docker/nextcloud/nextcloud_db_export.sql | \
-    docker exec -i nextcloud-db mariadb -u nextcloud -p"YOUR_DB_PASSWORD" nextcloud
+    docker exec -i nextcloud-db mariadb -u nextcloud -p"YOUR_DB_PASSWORD" nextcloud < /home/${USER}/docker/nextcloud/nextcloud_db_export.sql
 
 ### Step D: Restore Permissions & Start Stack
-After extraction, ownership might be mixed. Reset ownership to your local user for the configuration, but keep the data directory for Nextcloud assigned to the webserver user (UID 33):
+Use the `fix-nextcloud-perms.sh` script or apply these manual commands to ensure the webserver (UID 33) has access: [cite: 2026-01-22]
 
-    # Reset general ownership
-    sudo chown -R $USER:$USER /${USER}/docker
+    # Reset general ownership to local user
+    sudo chown -R $USER:$USER /home/${USER}/docker
     
-    # Specific fix for Nextcloud Data
-    sudo chown -R 33:33 /${USER}/docker/nextcloud/data
+    # Specific fix for Nextcloud Data (www-data)
+    sudo chown -R 33:33 /home/${USER}/docker/nextcloud/data
     
     # Bring the full stack online
     docker compose up -d
 
 ---
 
-## 3. Verifying Backup Integrity (The Restore Check)
-To avoid "Schrödinger's Backup", the stack includes automated and manual integrity checks.
+## 3. Verifying Backup Integrity
 
 ### Automated Check
-The `monitor_backup.sh` script automatically performs a "dry-run" decryption every night. It decrypts the latest local archive in-memory and verifies the internal structure without writing unencrypted data to the disk.
+The `monitor_backup.sh` script performs a nightly "dry-run" decryption to verify the archive stream and password without writing data to disk. [cite: 2026-01-22]
 
-### Manual Check
-If you want to manually verify an archive before attempting a full restore, run the following command (replace PASSWORD and FILE):
+### Manual Integrity Test
+To verify an archive without extracting it, check the tar header after decryption: [cite: 2026-01-22]
 
     openssl enc -d -aes-256-cbc -salt -pbkdf2 -pass "pass:PASSWORD" -in FILE.enc | tar -tzf -
 
 ---
 
 ## 4. Special Case: Nextcloud Data
-If `INCLUDE_NEXTCLOUD_DATA="true"` was set, your files are restored to `nextcloud/data`. If the files do not appear immediately in the Nextcloud web interface, trigger a manual scan:
+If `INCLUDE_NEXTCLOUD_DATA="true"` was set, trigger a manual scan if files do not appear in the web interface: [cite: 2026-01-22]
 
     docker exec --user www-data nextcloud-app php occ files:scan --all
 
@@ -81,19 +77,16 @@ If `INCLUDE_NEXTCLOUD_DATA="true"` was set, your files are restored to `nextclou
 
 ## 5. Troubleshooting
 
-| Issue | Solution |
-| :--- | :--- |
-| **Decryption Failed** | Verify `BACKUP_PASSWORD`. Ensure you are using `-pbkdf2` as used in v3.x scripts. |
-| **Bad Magic Number** | This usually means the file is corrupted or not a valid OpenSSL encrypted file. |
-| **Permission Denied** | Ensure you used `sudo` during the `tar` extraction (Step B). |
-| **Missing Videos** | Frigate videos are only included if `INCLUDE_FRIGATE_DATA="true"` was set in `.env`. |
-| **Database Connection Error** | Verify that the password in `.env` matches the password used during the SQL import. |
+| Issue                 | Solution                                                                              |
+|:----------------------|:--------------------------------------------------------------------------------------|
+| **Decryption Failed** | Verify `BACKUP_PASSWORD`. V3.x scripts strictly require `-pbkdf2`. [cite: 2026-01-22] |
+| **Bad Magic Number**  | The file is corrupted or was not encrypted with OpenSSL. [cite: 2026-01-22]           |
+| **Permission Denied** | Use `sudo` for extraction and run `fix-nextcloud-perms.sh`. [cite: 2026-01-22]        |
+| **Database Error**    | Ensure the `nextcloud-db` container is running before importing. [cite: 2026-01-22]   |
 
 ---
 
 ## 6. Script Integrity (CRLF issues)
-If you edited the restore commands or scripts on a Windows machine, you might encounter execution errors due to hidden carriage return characters (`^M`) [cite: 2026-01-21]. Use `vi` to check for hidden characters or run the following to repair the files on the Pi [cite: 2025-11-16]:
+If you edited scripts on Windows, repair them using `sed` to remove hidden `^M` characters: [cite: 2026-01-21]
 
-    sed -i 's/\r$//' restore_stack.sh
-    sed -i 's/\r$//' monitor_backup.sh
-    sed -i 's/\r$//' backup_stack.sh
+    sed -i 's/\r$//' /home/${USER}/docker/*.sh

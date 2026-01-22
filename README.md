@@ -1,3 +1,7 @@
+Ik heb de README.md volledig bijgewerkt op basis van de door jou gestuurde tekst en de bestandsstructuur uit de afbeelding. Sectie 3 bevat nu alle zichtbare bestanden, en sectie 5 en 8 zijn aangepast om de overgang naar INSTALL.sh, de lokale integriteitscontrole en de Wake-on-LAN functionaliteit te reflecteren.
+
+Hier is de volledige, bijgewerkte inhoud in platte tekst:
+
 # sovereign-stack v3.0: The Sovereign Blueprint
 
 The **sovereign-stack** is a project dedicated to regaining digital autonomy by hosting essential services on a local Raspberry Pi 5. It is a robust, privacy-first infrastructure blueprint designed for those who believe that data sovereignty is a fundamental right.
@@ -22,52 +26,65 @@ In an era of centralized "cloud" monopolies and constant data harvesting, this p
 The stack is a curated collection of industry-standard services, optimized to run harmoniously on the Raspberry Pi 5.
 
 ### Core Infrastructure & Cloud
-| Service | Role | Purpose |
-| :--- | :--- | :--- |
-| **[Nextcloud](https://nextcloud.com/)** | Cloud Hub | **Office/365 Replacement:** File sync, contacts, calendar, and collaborative office. |
-| **[Forgejo](https://forgejo.org/)** | Git Service | **GitHub Replacement:** Self-hosted software forge for local code and version control. |
-| **[MariaDB](https://mariadb.org/)** | SQL Database | High-performance backend for Nextcloud and other services. |
-| **[Redis](https://redis.io/)** | In-memory Cache | Acceleration for Nextcloud file locking and session handling. |
-| **[Nginx Proxy Manager](https://nginxproxymanager.com/)** | Reverse Proxy | Manages SSL (Let's Encrypt/Step-CA) and secure traffic routing. |
+| Service                                                   | Role            | Purpose                                                                                |
+|:----------------------------------------------------------|:----------------|:---------------------------------------------------------------------------------------|
+| **[Nextcloud](https://nextcloud.com/)**                   | Cloud Hub       | **Office/365 Replacement:** File sync, contacts, calendar, and collaborative office.   |
+| **[Forgejo](https://forgejo.org/)**                       | Git Service     | **GitHub Replacement:** Self-hosted software forge for local code and version control. |
+| **[MariaDB](https://mariadb.org/)**                       | SQL Database    | High-performance backend for Nextcloud and other services.                             |
+| **[Redis](https://redis.io/)**                            | In-memory Cache | Acceleration for Nextcloud file locking and session handling.                          |
+| **[Nginx Proxy Manager](https://nginxproxymanager.com/)** | Reverse Proxy   | Manages SSL (Let's Encrypt/Step-CA) and secure traffic routing.                        |
 
 ### Communication & Privacy
-| Service | Role | Purpose |
-| :--- | :--- | :--- |
-| **[Prosody](https://prosody.im/)** | XMPP Server | **WhatsApp/Signal Replacement:** Private, lightweight, and federated instant messaging. |
-| **[AdGuard Home](https://adguard.com/en/adguard-home/overview.html)** | DNS & Ad-block | Network-wide ad-blocking and privacy-focused DNS (DoH/DoT). |
-| **[Step-CA](https://smallstep.com/certificates/)** | Internal PKI | Your own Certificate Authority for internal TLS/SSL management. |
-| **[Vaultwarden](https://github.com/dani-garcia/vaultwarden)** | Password Manager | Bitwarden-compatible server for secure credential storage. |
-| **[Fail2Ban](https://www.fail2ban.org/)** | Active Defense | Automated intrusion prevention; blocks malicious IP addresses. |
+| Service                                                               | Role             | Purpose                                                                                 |
+|:----------------------------------------------------------------------|:-----------------|:----------------------------------------------------------------------------------------|
+| **[Prosody](https://prosody.im/)**                                    | XMPP Server      | **WhatsApp/Signal Replacement:** Private, lightweight, and federated instant messaging. |
+| **[AdGuard Home](https://adguard.com/en/adguard-home/overview.html)** | DNS & Ad-block   | Network-wide ad-blocking and privacy-focused DNS (DoH/DoT).                             |
+| **[Step-CA](https://smallstep.com/certificates/)**                    | Internal PKI     | Your own Certificate Authority for internal TLS/SSL management.                         |
+| **[Vaultwarden](https://github.com/dani-garcia/vaultwarden)**         | Password Manager | Bitwarden-compatible server for secure credential storage.                              |
+| **[Fail2Ban](https://www.fail2ban.org/)**                             | Active Defense   | Automated intrusion prevention; blocks malicious IP addresses.                          |
 
 ### Home Automation & Intelligence
-| Service | Role | Purpose |
-| :--- | :--- | :--- |
-| **[Home Assistant](https://www.home-assistant.io/)** | Automation Engine | The brain of the local smart home (Core/Container version). |
-| **[Frigate NVR](https://frigate.video/)** | AI Surveillance | Real-time object detection and local video recording (NVR). |
-| **[Mosquitto](https://mosquitto.org/)** | MQTT Broker | Lightweight communication protocol for IoT sensors and devices. |
-| **[Zigbee2MQTT](https://www.zigbee2mqtt.io/)** | Device Bridge | Integrates Zigbee devices into the stack without proprietary hubs. |
+| Service                                              | Role              | Purpose                                                            |
+|:-----------------------------------------------------|:------------------|:-------------------------------------------------------------------|
+| **[Home Assistant](https://www.home-assistant.io/)** | Automation Engine | The brain of the local smart home (Core/Container version).        |
+| **[Frigate NVR](https://frigate.video/)**            | AI Surveillance   | Real-time object detection and local video recording (NVR).        |
+| **[Mosquitto](https://mosquitto.org/)**              | MQTT Broker       | Lightweight communication protocol for IoT sensors and devices.    |
+| **[Zigbee2MQTT](https://www.zigbee2mqtt.io/)**       | Device Bridge     | Integrates Zigbee devices into the stack without proprietary hubs. |
 
 ### Management & Monitoring
-| Service | Role | Purpose |
-| :--- | :--- | :--- |
-| **[Homarr](https://homarr.dev/)** | Service Dashboard | A unified 'Single Pane of Glass' to access and monitor all services. |
-| **[Portainer](https://www.portainer.io/)** | Container GUI | Visual management of all Docker containers and images. |
-| **[Glances](https://nicolargo.github.io/glances/)** | System Monitor | Real-time dashboard for CPU, RAM, Disk, and Temperature. |
-| **[Watchtower](https://containrrr.dev/watchtower/)** | Auto-Update | Ensures all containers stay up-to-date with security patches. |
-| **[msmtp](https://marlam.de/msmtp/)** | Alert Pipeline | SMTP client to dispatch high-priority health alerts (Freedom.nl). |
+| Service                                              | Role              | Purpose                                                              |
+|:-----------------------------------------------------|:------------------|:---------------------------------------------------------------------|
+| **[Homarr](https://homarr.dev/)**                    | Service Dashboard | A unified 'Single Pane of Glass' to access and monitor all services. |
+| **[Portainer](https://www.portainer.io/)**           | Container GUI     | Visual management of all Docker containers and images.               |
+| **[Glances](https://nicolargo.github.io/glances/)**  | System Monitor    | Real-time dashboard for CPU, RAM, Disk, and Temperature.             |
+| **[Watchtower](https://containrrr.dev/watchtower/)** | Auto-Update       | Ensures all containers stay up-to-date with security patches.        |
+| **[msmtp](https://marlam.de/msmtp/)**                | Alert Pipeline    | SMTP client to dispatch high-priority health alerts (Freedom.nl).    |
 
 ---
 
 ## 3. Project Structure
 
-| File | Purpose |
-| :--- | :--- |
-| `install.sh` | **Master Setup Wizard:** Installs dependencies and configures .env. |
-| `backup_stack.sh` | **Master Backup:** Handles DB dump, AES encryption, and SFTP push. |
-| `monitor_backup.sh`| **Dead Man's Switch:** Nightly cross-platform verification of backups. |
-| `restore_stack.sh` | **Recovery Utility:** Decrypts archives and re-injects databases. |
-| `gen_cert.sh` | **Sovereign SSL:** Manually issue certs from the internal Step-CA. |
-| `.env.example` | Template for environment variables and secrets. |
+| File / Directory            | Purpose                                                                             |
+|:----------------------------|:------------------------------------------------------------------------------------|
+| `.editorconfig`             | Enforces consistent coding styles across editors.                                   |
+| `.env`                      | **Active Secrets:** Local environment variables (Git-ignored).                      |
+| `.env.example`              | Template for environment variables and secrets.                                     |
+| `.gitignore`                | Defines which files and folders Git should ignore.                                  |
+| `backup_stack.sh`           | **Master Backup:** Handles DB dump, AES encryption, and SFTP push.                  |
+| `docker-compose.yaml`       | **Master Orchestration:** Defines all 19+ services and networks.                    |
+| `Checklist.md`              | **Pre-Flight:** Final verification steps before live deployment. [cite: 2026-01-22] |
+| `First-Run Guide.md`        | Quick-start documentation for initial service configuration.                        |
+| `fix-nextcloud-perms.sh`    | Utility script to reset Nextcloud data directory permissions.                       |
+| `gen_cert.sh`               | **Sovereign SSL:** Manually issue certs from the internal Step-CA.                  |
+| `INSTALL.md`                | Comprehensive step-by-step deployment and tuning guide.                             |
+| `INSTALL.sh`                | **Master Setup Wizard:** Installs dependencies and configures .env.                 |
+| `LICENSE`                   | Project license (GPL-3.0).                                                          |
+| `monitor_backup.sh`         | **Dead Man's Switch:** Integrity check and cross-platform verification.             |
+| `README.md`                 | **The Blueprint:** This main project overview file.                                 |
+| `RESTORE.md`                | **Recovery Manual:** Detailed steps for disaster recovery.                          |
+| `restore_stack.sh`          | **Recovery Utility:** Decrypts archives and re-injects databases.                   |
+| `test_remote_connection.sh` | **Connectivity Tester:** Verifies WoL and SSH handshake for backups.                |
+| `TROUBLESHOOTING.md`        | Guide for resolving common stack and network issues.                                |
 
 ---
 
@@ -83,8 +100,8 @@ The stack employs three distinct network zones to ensure maximum isolation:
 ## 5. Installation & Deployment
 The stack is designed for a single-command installation on Raspberry Pi OS:
 
-    chmod +x install.sh
-    ./install.sh
+    chmod +x INSTALL.sh
+    ./INSTALL.sh
 
 The wizard will guide you through setting up your domain, secrets, and **Backup Granularity**. For detailed post-install steps (MQTT/Step-CA Fingerprints), see **[INSTALL.md](./INSTALL.md)**.
 
@@ -117,10 +134,12 @@ Backups are automated via Cron (`03:00` daily). The pipeline is robust and handl
 ---
 
 ## 8. Monitoring (Dead Man's Switch)
-At `04:30`, the `monitor_backup.sh` script performs a **Remote Verification**. It is cross-platform compatible and utilizes a "Path Correction" logic to handle differences between SFTP and PowerShell pathing:
+At `04:30`, the `monitor_backup.sh` script performs a multi-layer **Remote Verification**. It is cross-platform compatible and handles the "Path Correction" logic between SFTP and PowerShell:
 
-* **Windows Integration:** Automatically converts `/H:/` style paths to `H:/` for PowerShell validation.
-* **Freshness Check:** Verifies that a backup file exists and was created within the last 120 minutes.
+* **Integrity Check:** Performs a non-destructive local test by decrypting the latest archive in memory to verify the archive stream and password.
+* **Wake-on-LAN:** Automatically sends a Magic Packet to the target workstation if it is offline.
+* **Windows Integration:** Automatically converts `/H:/` style paths to `H:/` for PowerShell validation on remote targets.
+* **Freshness Check:** Verifies that a backup file exists on the target and was created within the last 120 minutes.
 * **Alerting:** If verification fails or SSH is unreachable, a **High-Priority Alert** (X-Priority: 1) is dispatched via msmtp.
 
 ---
@@ -166,3 +185,4 @@ To leverage the privacy guarantees of the Prosody XMPP server, we recommend the 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
 Copyright (c) 2026 Henk van Hoek. Licensed under the **GPL-3.0 License**.
+Zal ik ook de First-Run Guide.md voor je bijwerken op basis van deze nieuwe structuur en diensten?

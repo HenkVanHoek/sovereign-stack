@@ -10,19 +10,33 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 
-# sovereign-stack Selective Backup Pipeline v3.2
-
+# sovereign-stack Selective Backup Pipeline v3.5
 set -u
 
-# Load Environment
-ENV_PATH="/home/hvhoek/docker/.env"
+# Load Environment Dynamically
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+ENV_PATH="${SCRIPT_DIR}/.env"
+
+fatal_error() {
+    local msg="$1"
+    echo "$(date): FATAL - $msg"
+    if [ -n "${BACKUP_EMAIL:-}" ]; then
+        echo "Critical Backup Failure: $msg" | msmtp "${BACKUP_EMAIL}"
+    fi
+    exit 1
+}
+
 if [ -f "$ENV_PATH" ]; then
     set -a
     source <(sed 's/\r$//' "$ENV_PATH")
     set +a
 else
-    echo "Error: .env file not found at $ENV_PATH"
-    exit 1
+    fatal_error ".env file not found at $ENV_PATH"
+fi
+
+# Path Validation
+if [ ! -d "${DOCKER_ROOT:-}" ]; then
+    fatal_error "DOCKER_ROOT directory [${DOCKER_ROOT:-}] does not exist."
 fi
 
 # Paths & Vars
@@ -40,7 +54,13 @@ log_message() {
 
 log_message "--- Backup Routine Started ---"
 
-# 1. System Health Check
+# 1. Dependency Check
+if ! command -v wakeonlan &> /dev/null; then
+    log_message "Dependency 'wakeonlan' not found. Installing..."
+    sudo apt-get update && sudo apt-get install -y wakeonlan >> "$LOG_FILE" 2>&1
+fi
+
+# 2. System Health Check
 RAW_TEMP=$(vcgencmd measure_temp | grep -oP '\d+\.\d+')
 TEMP_INT=${RAW_TEMP%.*}
 TEMP_DISPLAY="${RAW_TEMP}'C"
@@ -48,12 +68,12 @@ DISK_USAGE=$(df -h "${DOCKER_ROOT}" | awk 'NR==2 {print $5}')
 
 log_message "System Status: Temp=$TEMP_DISPLAY | Disk=$DISK_USAGE"
 
-# 2. Database Export
+# 3. Database Export
 log_message "Exporting Nextcloud Database..."
 docker exec nextcloud-db mariadb-dump -u nextcloud -p"$NEXTCLOUD_DB_PASSWORD" \
     nextcloud > "$DB_EXPORT" 2>> "$LOG_FILE"
 
-# 3. Build Dynamic Excludes
+# 4. Build Dynamic Excludes
 EXCLUDES=(
     "--exclude=backups"
     "--exclude=.git"
@@ -71,13 +91,21 @@ if [ "${INCLUDE_NEXTCLOUD_DATA:-false}" != "true" ]; then
     log_message "Mode: Excluding Nextcloud User Files"
 fi
 
-# 4. Archive & Encrypt
+# 5. Archive & Encrypt
 log_message "Archiving and Encrypting..."
 sudo tar "${EXCLUDES[@]}" -cvzf - -C "$DOCKER_ROOT" . 2>> "$LOG_FILE" | \
 openssl enc -aes-256-cbc -salt -pbkdf2 -pass "pass:$BACKUP_PASSWORD" \
     -out "${BACKUP_DIR}/${FILENAME}" 2>> "$LOG_FILE"
 
-# 5. SFTP Transfer
+# 6. Remote Wake-up Logic
+if [ -n "${PC_MAC:-}" ]; then
+    log_message "Sending Wake-on-LAN Magic Packet to ${PC_MAC}..."
+    wakeonlan "$PC_MAC" >> "$LOG_FILE" 2>&1
+    log_message "Waiting 60 seconds for remote PC to boot..."
+    sleep 60
+fi
+
+# 7. SFTP Transfer
 log_message "Transferring to ${BACKUP_TARGET_OS} PC..."
 BATCH_FILE=$(mktemp)
 REMOTE_PATH="${PC_BACKUP_PATH}"
@@ -86,17 +114,16 @@ REMOTE_PATH="${PC_BACKUP_PATH}"
 echo "put ${BACKUP_DIR}/${FILENAME} ${REMOTE_PATH}/" > "$BATCH_FILE"
 echo "quit" >> "$BATCH_FILE"
 
-# SSH commando's gebruiken geen http:// prefix
-CLEAN_IP=$(echo "$PC_IP" | sed 's|http://||g')
+CLEAN_IP=$(echo "$PC_IP" | sed -e 's|^http://||' -e 's|^https://||')
 sftp -b "$BATCH_FILE" "${PC_USER}@${CLEAN_IP}" >> "$LOG_FILE" 2>&1
 SFTP_STATUS=$?
 rm "$BATCH_FILE"
 
-# 6. Local Cleanup
+# 8. Local Cleanup
 log_message "Cleaning up local archives older than 7 days..."
 find "$BACKUP_DIR" -name "sovereign_stack_*.enc" -mtime +7 -delete >> "$LOG_FILE" 2>&1
 
-# 7. Final Status & Email Priority Logic
+# 9. Final Status & Email Priority Logic
 PRIORITY="Normal"
 PRIORITY_HEADER="3"
 
@@ -104,7 +131,7 @@ if [ $SFTP_STATUS -eq 0 ]; then
     STATUS_MSG="SUCCESS: Backup transferred to PC."
     SUBJECT="✅ Sovereign Backup Success ($TEMP_DISPLAY)"
 else
-    STATUS_MSG="ERROR: Backup transfer FAILED. Check cron.log for details."
+    STATUS_MSG="ERROR: Backup transfer FAILED. Check if PC is reachable."
     SUBJECT="❌ ALERT: Sovereign Backup FAILED"
     PRIORITY="High"
     PRIORITY_HEADER="1"
@@ -119,7 +146,7 @@ fi
 log_message "$STATUS_MSG"
 log_message "--- Backup Routine Finished ---"
 
-# 8. Send Email
+# 10. Send Email
 TEMP_MAIL=$(mktemp)
 {
     echo "To: ${BACKUP_EMAIL}"

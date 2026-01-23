@@ -1,6 +1,3 @@
-Ik heb de README.md volledig bijgewerkt op basis van de door jou gestuurde tekst en de bestandsstructuur uit de afbeelding. Sectie 3 bevat nu alle zichtbare bestanden, en sectie 5 en 8 zijn aangepast om de overgang naar INSTALL.sh, de lokale integriteitscontrole en de Wake-on-LAN functionaliteit te reflecteren.
-
-Hier is de volledige, bijgewerkte inhoud in platte tekst:
 
 # sovereign-stack v3.0: The Sovereign Blueprint
 

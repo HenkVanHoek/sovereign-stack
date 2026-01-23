@@ -16,7 +16,18 @@ set -u
 # Load Environment Dynamically
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 ENV_PATH="${SCRIPT_DIR}/.env"
-
+# Prevent running as root/sudo to protect SSH identity and environment context [cite: 2026-01-22]
+if [[ $EUID -eq 0 ]]; then
+    echo "---------------------------------------------------------------------"
+    echo "[ERROR] This script should NOT be run with sudo or as root."
+    echo "Reasoning:"
+    echo "1. SSH/SFTP uses your local keys (~/.ssh/id_rsa). Root has different keys."
+    echo "2. Environment variables like \$USER and \$DOCKER_ROOT change under sudo."
+    echo "---------------------------------------------------------------------"
+    echo "If you need Docker permissions, run: sudo usermod -aG docker \$USER"
+    echo "Then relog and run this script as: ./backup_stack.sh"
+    exit 1
+fi
 fatal_error() {
     local msg="$1"
     echo "$(date): FATAL - $msg"
@@ -28,6 +39,7 @@ fatal_error() {
 
 if [ -f "$ENV_PATH" ]; then
     set -a
+    # shellcheck disable=SC1090
     source <(sed 's/\r$//' "$ENV_PATH")
     set +a
 else
@@ -49,15 +61,16 @@ DB_EXPORT="${DOCKER_ROOT}/nextcloud/nextcloud_db_export.sql"
 mkdir -p "$BACKUP_DIR"
 
 log_message() {
-    echo "$(date): $1" | tee -a "$LOG_FILE"
+    echo "$(date): $1"
 }
+exec >> "$LOG_FILE" 2>&1
 
 log_message "--- Backup Routine Started ---"
 
 # 1. Dependency Check
 if ! command -v wakeonlan &> /dev/null; then
     log_message "Dependency 'wakeonlan' not found. Installing..."
-    sudo apt-get update && sudo apt-get install -y wakeonlan >> "$LOG_FILE" 2>&1
+    (sudo apt-get update && sudo apt-get install -y wakeonlan) 2>&1 | sudo tee -a "$LOG_FILE" > /dev/null
 fi
 
 # 2. System Health Check
@@ -98,13 +111,37 @@ openssl enc -aes-256-cbc -salt -pbkdf2 -pass "pass:$BACKUP_PASSWORD" \
     -out "${BACKUP_DIR}/${FILENAME}" 2>> "$LOG_FILE"
 
 # 6. Remote Wake-up Logic
-if [ -n "${PC_MAC:-}" ]; then
+if [ -n "${PC_MAC:-}" ] && [ -n "${PC_IP:-}" ]; then
     log_message "Sending Wake-on-LAN Magic Packet to ${PC_MAC}..."
-    wakeonlan "$PC_MAC" >> "$LOG_FILE" 2>&1
-    log_message "Waiting 60 seconds for remote PC to boot..."
-    sleep 60
-fi
+    # Fixed SC2024: Use tee -a for sudo-friendly redirection [cite: 2026-01-22]
+    wakeonlan "$PC_MAC" 2>&1 | sudo tee -a "$LOG_FILE" > /dev/null
 
+    log_message "Waiting for remote target (${PC_IP}) to respond..."
+
+    MAX_RETRIES=15
+    RETRY_COUNT=0
+    PC_REACHABLE=0
+
+    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        if ping -c 1 -W 1 "$PC_IP" &> /dev/null; then
+            log_message "[OK] Target PC is online. Proceeding..."
+            PC_REACHABLE=1
+            break
+        fi
+
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        log_message "Still waiting for ${PC_IP}... ($RETRY_COUNT/$MAX_RETRIES)"
+        sleep 6
+    done
+
+    if [ $PC_REACHABLE -eq 0 ]; then
+        log_message "[ERROR] Target PC did not wake up within timeout period."
+        # Logic to send alert...
+        exit 1
+    fi
+
+    sleep 5
+fi
 # 7. SFTP Transfer
 log_message "Transferring to ${BACKUP_TARGET_OS} PC..."
 BATCH_FILE=$(mktemp)
@@ -171,5 +208,5 @@ TEMP_MAIL=$(mktemp)
     echo "End of Report."
 } > "$TEMP_MAIL"
 
-cat "$TEMP_MAIL" | msmtp "${BACKUP_EMAIL}"
+msmtp "${BACKUP_EMAIL}" < "$TEMP_MAIL"
 rm "$TEMP_MAIL"

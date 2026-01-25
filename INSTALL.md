@@ -187,3 +187,7 @@ For a sovereign overview, add these widgets to your Homarr board:
 
 ### 10.2 Saving your Layout
 To ensure your dashboard configuration is safe, export your layout via **Management → Boards → Export**. Save this as `homarr_layout.json` in your project root.
+
+---
+
+*This documentation is part of the **Sovereign Stack** project. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY. Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*

@@ -2,17 +2,24 @@
 # File: restore_stack.sh
 # Part of the sovereign-stack project.
 #
-# Copyright (C) 2026 Henk van Hoek [cite: 2026-01-22]
-# Licensed under the GNU General Public License v3.0 or later.
+# Copyright (C) 2026 Henk van Hoek
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. [cite: 2026-01-22]
-
-# sovereign-stack Disaster Recovery Utility v3.2 [cite: 2026-01-22]
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
+# sovereign-stack Disaster Recovery Utility v3.2
 set -u
 
-# 1. Load Environment Dynamically [cite: 2026-01-22]
+# 1. Load Environment Dynamically
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 ENV_FILE="${SCRIPT_DIR}/.env"
 
@@ -35,7 +42,7 @@ echo "--- Sovereign Stack: Disaster Recovery Utility ---"
 
 # 3. Select Backup File
 echo "Available backups in $BACKUP_DIR:"
-# Fixed ShellCheck warning by using find instead of ls [cite: 2026-01-22]
+# Fixed ShellCheck warning by using find instead of ls
 find "$BACKUP_DIR" -maxdepth 1 -name "*.enc" -exec basename {} \;
 echo ""
 read -r -p "Enter the full filename of the backup to restore: " SELECTED_BACKUP
@@ -77,7 +84,7 @@ else
     echo "[SKIP] No SQL dump found in the backup archive."
 fi
 
-# 7. Permission Correction [cite: 2026-01-22]
+# 7. Permission Correction
 echo "Step 4/4: Correcting file permissions..."
 sudo chown -R "$USER:$USER" "$DOCKER_ROOT"
 

@@ -106,3 +106,9 @@ To ensure your stack is correctly protected, you can perform a manual "Pre-fligh
 1. **Environment Test:** Run `./verify_env.sh` manually. It should exit silently if everything is correct.
 2. **Identity Guard:** Attempt to run `./backup_stack.sh` with `sudo`. The script should immediately block the execution and exit with an error.
 3. **Anti-Stacking:** Open two terminals and attempt to run `./monitor_backup.sh` simultaneously. The second instance should exit immediately thanks to the `flock` protection.
+
+---
+
+---
+
+*This documentation is part of the **Sovereign Stack** project. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY. Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*

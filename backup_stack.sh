@@ -1,52 +1,80 @@
 #!/bin/bash
 # File: backup_stack.sh
 # Part of the sovereign-stack project.
+# Version: 3.6.14 (Master Spec Compliant)
 #
 # Copyright (C) 2026 Henk van Hoek
-# Licensed under the GNU General Public License v3.0 or later.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
 
-# sovereign-stack Selective Backup Pipeline v3.5
+# shellcheck disable=SC2154
 set -u
 
-# Load Environment Dynamically
+# 1. Environment & Path Setup
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 ENV_PATH="${SCRIPT_DIR}/.env"
-# Prevent running as root/sudo to protect SSH identity and environment context [cite: 2026-01-22]
+
+# 2. Identity Guard (Sectie 2: Root Prevention)
 if [[ $EUID -eq 0 ]]; then
-    echo "---------------------------------------------------------------------"
     echo "[ERROR] This script should NOT be run with sudo or as root."
-    echo "Reasoning:"
-    echo "1. SSH/SFTP uses your local keys (~/.ssh/id_rsa). Root has different keys."
-    echo "2. Environment variables like \$USER and \$DOCKER_ROOT change under sudo."
-    echo "---------------------------------------------------------------------"
-    echo "If you need Docker permissions, run: sudo usermod -aG docker \$USER"
-    echo "Then relog and run this script as: ./backup_stack.sh"
     exit 1
 fi
+
+# 3. Sovereign Guard: Heavy Duty Locking (Sectie 2: Anti-Stacking)
+exec 100>/tmp/sovereign_backup.lock
+if ! flock -n 100; then
+    exit 0
+fi
+
+# Internal Helpers
 fatal_error() {
     local msg="$1"
-    echo "$(date): FATAL - $msg"
+    printf "%s: FATAL - %b\n" "$(date)" "$msg"
     if [ -n "${BACKUP_EMAIL:-}" ]; then
-        echo "Critical Backup Failure: $msg" | msmtp "${BACKUP_EMAIL}"
+        local temp_err
+        temp_err=$(mktemp)
+        {
+            echo "To: ${BACKUP_EMAIL}"
+            echo "Subject: ❌ Sovereign Stack CRITICAL ERROR"
+            echo "Content-Type: text/plain; charset=utf-8"
+            echo ""
+            printf "Critical Backup Failure:\n%b\n" "$msg"
+        } > "$temp_err"
+        msmtp "${BACKUP_EMAIL}" < "$temp_err"
+        rm "$temp_err"
     fi
     exit 1
 }
 
+log_message() {
+    echo "$(date): $1"
+}
+
+# 4. Environment & Path Guard (Sectie 2)
 if [ -f "$ENV_PATH" ]; then
     set -a
-    # shellcheck disable=SC1090
+    # shellcheck disable=SC1091,SC1090
     source <(sed 's/\r$//' "$ENV_PATH")
     set +a
 else
     fatal_error ".env file not found at $ENV_PATH"
 fi
 
-# Path Validation
+if ! ENV_CHECK_OUTPUT=$( "${SCRIPT_DIR}/verify_env.sh" 2>&1 ); then
+    fatal_error "Environment verification failed. Missing or empty variables:\n\n$ENV_CHECK_OUTPUT"
+fi
+
 if [ ! -d "${DOCKER_ROOT:-}" ]; then
     fatal_error "DOCKER_ROOT directory [${DOCKER_ROOT:-}] does not exist."
 fi
@@ -60,20 +88,12 @@ DB_EXPORT="${DOCKER_ROOT}/nextcloud/nextcloud_db_export.sql"
 
 mkdir -p "$BACKUP_DIR"
 
-log_message() {
-    echo "$(date): $1"
-}
+# Logging setup - reached only after lock and guards
 exec >> "$LOG_FILE" 2>&1
 
 log_message "--- Backup Routine Started ---"
 
-# 1. Dependency Check
-if ! command -v wakeonlan &> /dev/null; then
-    log_message "Dependency 'wakeonlan' not found. Installing..."
-    (sudo apt-get update && sudo apt-get install -y wakeonlan) 2>&1 | sudo tee -a "$LOG_FILE" > /dev/null
-fi
-
-# 2. System Health Check
+# 5. System Status (Sectie 3: Telemetry)
 RAW_TEMP=$(vcgencmd measure_temp | grep -oP '\d+\.\d+')
 TEMP_INT=${RAW_TEMP%.*}
 TEMP_DISPLAY="${RAW_TEMP}'C"
@@ -81,18 +101,15 @@ DISK_USAGE=$(df -h "${DOCKER_ROOT}" | awk 'NR==2 {print $5}')
 
 log_message "System Status: Temp=$TEMP_DISPLAY | Disk=$DISK_USAGE"
 
-# 3. Database Export
+# 6. Database Export (Sectie 3: Database)
 log_message "Exporting Nextcloud Database..."
-docker exec nextcloud-db mariadb-dump -u nextcloud -p"$NEXTCLOUD_DB_PASSWORD" \
-    nextcloud > "$DB_EXPORT" 2>> "$LOG_FILE"
+if ! docker exec nextcloud-db mariadb-dump -u nextcloud -p"$NEXTCLOUD_DB_PASSWORD" \
+    nextcloud > "$DB_EXPORT"; then
+    log_message "WARNING: Database export failed."
+fi
 
-# 4. Build Dynamic Excludes
-EXCLUDES=(
-    "--exclude=backups"
-    "--exclude=.git"
-    "--exclude=nextcloud/db"
-    "--exclude=portainer/data"
-)
+# 7. Build Dynamic Excludes (Sectie 3: Differentiation)
+EXCLUDES=("--exclude=backups" "--exclude=.git" "--exclude=nextcloud/db" "--exclude=portainer/data")
 
 if [ "${INCLUDE_FRIGATE_DATA:-false}" != "true" ]; then
     EXCLUDES+=("--exclude=storage")
@@ -104,86 +121,69 @@ if [ "${INCLUDE_NEXTCLOUD_DATA:-false}" != "true" ]; then
     log_message "Mode: Excluding Nextcloud User Files"
 fi
 
-# 5. Archive & Encrypt
-log_message "Archiving and Encrypting..."
-sudo tar "${EXCLUDES[@]}" -cvzf - -C "$DOCKER_ROOT" . 2>> "$LOG_FILE" | \
+# 8. Archive & Encrypt (Sectie 3: Security)
+log_message "Archiving and Encrypting (sovereign_stack_${DATE})..."
+sudo tar "${EXCLUDES[@]}" -czf - -C "$DOCKER_ROOT" . | \
 openssl enc -aes-256-cbc -salt -pbkdf2 -pass "pass:$BACKUP_PASSWORD" \
-    -out "${BACKUP_DIR}/${FILENAME}" 2>> "$LOG_FILE"
+    -out "${BACKUP_DIR}/${FILENAME}"
 
-# 6. Remote Wake-up Logic
-if [ -n "${PC_MAC:-}" ] && [ -n "${PC_IP:-}" ]; then
-    log_message "Sending Wake-on-LAN Magic Packet to ${PC_MAC}..."
-    # Fixed SC2024: Use tee -a for sudo-friendly redirection [cite: 2026-01-22]
-    wakeonlan "$PC_MAC" 2>&1 | sudo tee -a "$LOG_FILE" > /dev/null
+# 9. Remote Wake-up (Sectie 3: WOL Utility)
+TARGET_REACHABLE=0
+CLEAN_IP=$(echo "$BACKUP_TARGET_IP" | sed -e 's|^http://||' -e 's|^https://||')
 
-    log_message "Waiting for remote target (${PC_IP}) to respond..."
-
-    MAX_RETRIES=15
-    RETRY_COUNT=0
-    PC_REACHABLE=0
-
-    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-        if ping -c 1 -W 1 "$PC_IP" &> /dev/null; then
-            log_message "[OK] Target PC is online. Proceeding..."
-            PC_REACHABLE=1
-            break
-        fi
-
-        RETRY_COUNT=$((RETRY_COUNT + 1))
-        log_message "Still waiting for ${PC_IP}... ($RETRY_COUNT/$MAX_RETRIES)"
-        sleep 6
-    done
-
-    if [ $PC_REACHABLE -eq 0 ]; then
-        log_message "[ERROR] Target PC did not wake up within timeout period."
-        # Logic to send alert...
-        exit 1
+if [ -n "${BACKUP_TARGET_MAC:-}" ] && [ -n "$CLEAN_IP" ]; then
+    log_message "Attempting to wake backup target (${CLEAN_IP})..."
+    if "${SCRIPT_DIR}/wake_target.sh" \
+        "$BACKUP_TARGET_MAC" \
+        "$CLEAN_IP" \
+        "${BACKUP_MAX_RETRIES:-15}" \
+        "${BACKUP_RETRY_WAIT:-6}"; then
+        log_message "[OK] Target is online. Proceeding..."
+        TARGET_REACHABLE=1
+    else
+        log_message "[ERROR] Target did not wake up within timeout."
     fi
-
-    sleep 5
 fi
-# 7. SFTP Transfer
-log_message "Transferring to ${BACKUP_TARGET_OS} PC..."
-BATCH_FILE=$(mktemp)
-REMOTE_PATH="${PC_BACKUP_PATH}"
-[[ "$REMOTE_PATH" != /* ]] && REMOTE_PATH="/$REMOTE_PATH"
 
-echo "put ${BACKUP_DIR}/${FILENAME} ${REMOTE_PATH}/" > "$BATCH_FILE"
-echo "quit" >> "$BATCH_FILE"
+# 10. SFTP Transfer
+SFTP_STATUS=1
+if [ $TARGET_REACHABLE -eq 1 ]; then
+    log_message "Transferring to ${BACKUP_TARGET_OS} Target..."
+    BATCH_FILE=$(mktemp)
+    echo "put ${BACKUP_DIR}/${FILENAME} ${BACKUP_TARGET_PATH}" > "$BATCH_FILE"
+    echo "quit" >> "$BATCH_FILE"
 
-CLEAN_IP=$(echo "$PC_IP" | sed -e 's|^http://||' -e 's|^https://||')
-sftp -b "$BATCH_FILE" "${PC_USER}@${CLEAN_IP}" >> "$LOG_FILE" 2>&1
-SFTP_STATUS=$?
-rm "$BATCH_FILE"
+    if sftp -b "$BATCH_FILE" "${BACKUP_TARGET_USER}@${CLEAN_IP}"; then
+        SFTP_STATUS=0
+    else
+        SFTP_STATUS=1
+    fi
+    rm "$BATCH_FILE"
+fi
 
-# 8. Local Cleanup
-log_message "Cleaning up local archives older than 7 days..."
-find "$BACKUP_DIR" -name "sovereign_stack_*.enc" -mtime +7 -delete >> "$LOG_FILE" 2>&1
+# 11. Cleanup & Status Logic
+log_message "Cleaning up local archives older than ${BACKUP_RETENTION_DAYS} day(s) specified in your .env file."
+find "$BACKUP_DIR" -maxdepth 1 -name "sovereign_stack_*.enc" -mtime "+${BACKUP_RETENTION_DAYS}" -delete
 
-# 9. Final Status & Email Priority Logic
-PRIORITY="Normal"
-PRIORITY_HEADER="3"
-
+PRIORITY="Normal"; PRIORITY_HEADER="3"
 if [ $SFTP_STATUS -eq 0 ]; then
-    STATUS_MSG="SUCCESS: Backup transferred to PC."
+    STATUS_MSG="SUCCESS: Backup transferred to target."
     SUBJECT="✅ Sovereign Backup Success ($TEMP_DISPLAY)"
 else
-    STATUS_MSG="ERROR: Backup transfer FAILED. Check if PC is reachable."
+    STATUS_MSG="ERROR: Backup transfer FAILED."
     SUBJECT="❌ ALERT: Sovereign Backup FAILED"
-    PRIORITY="High"
-    PRIORITY_HEADER="1"
+    PRIORITY="High"; PRIORITY_HEADER="1"
 fi
 
 if [ "$TEMP_INT" -ge 80 ]; then
     SUBJECT="⚠️ CRITICAL TEMP: Sovereign Backup Alert ($TEMP_DISPLAY)"
-    PRIORITY="High"
-    PRIORITY_HEADER="1"
+    PRIORITY="High"; PRIORITY_HEADER="1"
 fi
 
 log_message "$STATUS_MSG"
 log_message "--- Backup Routine Finished ---"
 
-# 10. Send Email
+# 12. Email Report (Sectie 3: Reporting)
 TEMP_MAIL=$(mktemp)
 {
     echo "To: ${BACKUP_EMAIL}"
@@ -201,7 +201,7 @@ TEMP_MAIL=$(mktemp)
     echo "Status:      ${STATUS_MSG}"
     echo "Filename:    ${FILENAME}"
     echo ""
-    echo "FULL LOG FOR THIS RUN:"
+    echo "REPORT LOG (LAST 50 LINES):"
     echo "------------------------------------------------------------"
     sed -n "/--- Backup Routine Started/,/--- Backup Routine Finished/p" "$LOG_FILE" | tail -n 50
     echo "------------------------------------------------------------"

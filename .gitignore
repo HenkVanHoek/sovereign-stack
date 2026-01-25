@@ -32,11 +32,18 @@ frigate/db/
 frigate/recordings/
 
 # --- IDE & System Files ---
-# PyCharm settings (we keep these local)
+# --- IDE & System Files ---
+# IDE settings (PyCharm, VS Code, etc. - keep these local)
 .idea/
+.vscode/
 *.iml
+*.code-workspace
 .DS_Store
 thumbs.db
+
+# --- Script Overhead ---
+/tmp/tmp.*
+.tmp_*
 
 # Python overhead (if any)
 __pycache__/

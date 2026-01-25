@@ -99,7 +99,6 @@ The recovery process follows the **Selective Injection** method:
 
 ---
 
-## 8. License
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY. 
+---
 
-Copyright (c) 2026 Henk van Hoek. Licensed under the **GNU GPL-3.0 License**.
+*This documentation is part of the **Sovereign Stack** project. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY. Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*

@@ -172,3 +172,6 @@ If `wake_target.sh` reports that it cannot find the `wakeonlan` command.
 Install the utility manually:
 
     sudo apt update && sudo apt install wakeonlan -y
+---
+
+*This documentation is part of the **Sovereign Stack** project. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY. Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*

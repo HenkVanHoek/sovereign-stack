@@ -2,17 +2,17 @@
 # File: fix-nextcloud-perms.sh
 # Part of the sovereign-stack project.
 #
-# Copyright (C) 2026 Henk van Hoek [cite: 2026-01-22]
+# Copyright (C) 2026 Henk van Hoek
 # Licensed under the GNU General Public License v3.0 or later.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. [cite: 2026-01-22]
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-# sovereign-stack Nextcloud Permission Fixer v2.0 [cite: 2026-01-22]
+# sovereign-stack Nextcloud Permission Fixer v2.0
 set -u
 
-# 1. Load Environment Dynamically [cite: 2026-01-22]
+# 1. Load Environment Dynamically
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 ENV_FILE="${SCRIPT_DIR}/.env"
 
@@ -40,12 +40,12 @@ fi
 
 # 4. Apply Permissions
 echo "Step 1/2: Setting ownership for Nextcloud app files..."
-# Standard files are owned by the host user [cite: 2026-01-22]
+# Standard files are owned by the host user
 sudo chown -R "$USER:$USER" "$NC_DIR"
 
 if [ -d "$NC_DATA_DIR" ]; then
     echo "Step 2/2: Setting ownership for Nextcloud data (UID 33/www-data)..."
-    # The data directory MUST be owned by the webserver user [cite: 2026-01-22]
+    # The data directory MUST be owned by the webserver user
     sudo chown -R 33:33 "$NC_DATA_DIR"
 
     echo "Applying secure directory and file masks..."

@@ -35,3 +35,9 @@
 * **Linter**: Scripts must pass 'yamllint' (without hyphens).
 * **Environment**: All sensitive data and paths must be sourced from a .env file.
 * **Logging**: Output redirected to ${DOCKER_ROOT}/backups/cron.log only AFTER lock is acquired.
+
+---
+
+---
+
+*This documentation is part of the **Sovereign Stack** project. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY. Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*

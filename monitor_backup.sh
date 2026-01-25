@@ -104,7 +104,7 @@ else
     fi
 fi
 
-# 7. Remote Verification (Sectie 3: WOL Utility & Networking) [cite: 2026-01-24]
+# 7. Remote Verification (Sectie 3: WOL Utility & Networking)
 CLEAN_IP=$(echo "$BACKUP_TARGET_IP" | sed -e 's|^http://||' -e 's|^https://||')
 FILE_NAME=$(basename "$LATEST_LOCAL")
 REMOTE_FULL_PATH="${BACKUP_TARGET_PATH}/${FILE_NAME}"
@@ -117,7 +117,7 @@ if "${SCRIPT_DIR}/wake_target.sh" \
     "${BACKUP_RETRY_WAIT:-6}"; then
 
     if [ "${BACKUP_TARGET_OS,,}" = "windows" ]; then
-        # Remove leading slash for Windows CMD compatibility [cite: 2026-01-24]
+        # Remove leading slash for Windows CMD compatibility
         WIN_PATH=$(echo "$REMOTE_FULL_PATH" | sed 's/^\///')
         CHECK_CMD="if exist \"${WIN_PATH}\" (exit 0) else (exit 1)"
     else
@@ -134,7 +134,7 @@ else
     log_message "WARN: Could not reach target for remote verification."
 fi
 
-# 8. Report Generation & Email Dispatch (Sectie 3: Reporting) [cite: 2026-01-24]
+# 8. Report Generation & Email Dispatch (Sectie 3: Reporting)
 if [[ "$STATUS" == *"OK"* ]]; then
     SUBJECT="✅ Sovereign Backup Success ($TEMP)"
 else

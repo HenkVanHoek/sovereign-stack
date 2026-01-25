@@ -49,3 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 The Sovereign Stack began as a personal hobby and laboratory project to achieve digital autonomy. Versions prior to **v3.5.0** were part of an internal, rapid-development phase and are not individually documented here. 
 
 Starting with **v3.6.1**, the project has transitioned to a structured release cycle for public use on GitHub, with all future changes being meticulously tracked in this log.
+
+---
+
+*This documentation is part of the **Sovereign Stack** project. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY. Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*

@@ -21,6 +21,8 @@ mosquitto/log/
 npm/data/
 prosody/data/
 prosody/uploads/
+prosody/config/prosody.cfg.lua
+prosody/config/www/index.html
 
 # Missing services from previous list
 step-ca/
@@ -31,7 +33,6 @@ fail2ban/data/
 frigate/db/
 frigate/recordings/
 
-# --- IDE & System Files ---
 # --- IDE & System Files ---
 # IDE settings (PyCharm, VS Code, etc. - keep these local)
 .idea/

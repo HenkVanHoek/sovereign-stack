@@ -1,4 +1,4 @@
-# First-Run Guide: Service Configuration & Trust
+# First-Run Guide: Service Configuration & Trust (v4.0)
 
 This guide covers the essential post-installation steps to ensure your **sovereign-stack** services are trusted, connected, and fully functional.
 
@@ -83,23 +83,59 @@ The backup pipeline includes `wake_target.sh` logic to ensure your remote workst
 
 ## 5. Summary of Automated Tasks
 - **Backups:** Run daily at `03:00` via `backup_stack.sh`.
-- **Dead Man's Switch:** Verifies integrity and remote arrival at `12:00` (Noon) via `monitor_backup.sh`.
+- **Dead Man's Switch:** Verifies integrity and remote arrival at `03:30` via `monitor_backup.sh`.
 - **Container Updates:** Watchtower checks for security patches every 24 hours.
 
 ---
 
-## 6. Homarr Dashboard Setup
+## 6. Matrix (Conduit): Replacing WhatsApp/Signal
+
+To use Matrix as your primary communication server, you must ensure federation works.
+
+1.  **Verify Domain Delegation:**
+    Run this command on your workstation to verify your proxy settings:
+    `curl -v https://matrix.yourdomain.com/.well-known/matrix/server`
+    *You should see a JSON response pointing to port 443.*
+
+2.  **Create User:**
+    Use a client like **Element X** (Mobile) or **Element Desktop**.
+    * **Homeserver:** `https://matrix.yourdomain.com`
+    * **Action:** Click "Create Account".
+    * *Note: If `SIGNUPS_ALLOWED` is false in `.env`, you must enable it temporarily to register.*
+
+---
+
+## 7. Homarr Dashboard Setup
 
 After starting the stack, your Homarr dashboard will be empty. Follow these steps to populate it:
 
 1. **Access the Dashboard:** Go to `http://<your-pi-ip>:7575` or your domain.
 2. **Enter Edit Mode:** Click the pencil icon in the top right corner.
 3. **Docker Integration:** Enable "Docker Integration" on your tiles to automatically see CPU and RAM usage for your containers.
-4. **Health Pings:** For internal health checks, use the service names defined in `docker-compose.yaml` (e.g., `http://adguardhome`).
+4. **Health Pings:** For internal health checks, use the service names defined in `docker-compose.yaml` (e.g., `http://adguardhome:3000`).
 
 ---
 
-## 7. Verifying the Sovereign Guards
+## 8. Homarr Service Integration Reference (v4.0)
+
+| Service                 | Icon Name             | Internal Docker URL         | Official Website                                       |
+|:------------------------|:----------------------|:----------------------------|:-------------------------------------------------------|
+| **Nextcloud**           | `nextcloud`           | `http://nextcloud-app:80`   | [nextcloud.com](https://nextcloud.com)                 |
+| **Collabora**           | `libreoffice`         | `http://collabora:9980`     | [collaboraoffice.com](https://collaboraoffice.com)     |
+| **Forgejo**             | `forgejo`             | `http://forgejo:3000`       | [forgejo.org](https://forgejo.org)                     |
+| **Matrix (Conduit)**    | `matrix`              | `http://matrix:6167`        | [conduit.rs](https://conduit.rs)                       |
+| **AdGuard Home**        | `adguard-home`        | `http://adguardhome:3000`   | [adguard.com](https://adguard.com)                     |
+| **Vaultwarden**         | `bitwarden`           | `http://vaultwarden:80`     | [bitwarden.com](https://bitwarden.com)                 |
+| **Home Assistant**      | `home-assistant`      | `http://homeassistant:8123` | [home-assistant.io](https://home-assistant.io)         |
+| **Frigate**             | `frigate`             | `http://frigate:5000`       | [frigate.video](https://frigate.video)                 |
+| **Nginx Proxy Manager** | `nginx-proxy-manager` | `http://npm:81`             | [nginxproxymanager.com](https://nginxproxymanager.com) |
+
+### 8.1 Saving your Layout
+To ensure your dashboard configuration is safe, export your layout via **Management → Boards → Export**. Save this as `homarr_layout.json` in your project root.
+
+---
+
+## 9. Verifying the Sovereign Guards
 
 To ensure your stack is correctly protected, you can perform a manual "Pre-flight" check:
 

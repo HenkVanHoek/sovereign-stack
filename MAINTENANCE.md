@@ -1,26 +1,27 @@
-
-
-# Maintenance Guide v1.0 - Staying Sovereign
+# Maintenance Guide v4.0 - Staying Sovereign
 
 This guide outlines the routine tasks required to keep your **sovereign-stack** healthy, fast, and secure on your Raspberry Pi 5.
 
 ## 1. Storage & Backup Hygiene
-Your system is configured with a 7-day local retention policy.
-- **Monitor Growth:** While the NVMe is large (1TB), Nextcloud data and Frigate recordings are the primary growth factors.
-- **Check Disk Space:** Periodically verify that your SSD isn't reaching its limits.
+Your system is configured with a 7-day local retention policy (configurable via `BACKUP_RETENTION_DAYS` in `.env`).
+- **Monitor Growth:** While the NVMe is large (1TB), Frigate recordings (NVR) and Nextcloud data are the primary growth factors.
+- **Check Disk Space:** Periodically verify that your SSD isn't reaching its limits using the monthly maintenance script.
 
 ## 2. Docker Maintenance
 Over time, old Docker images (from updates) and stopped containers can consume significant space.
 - **Image Pruning:** Remove unused layers and images that are no longer part of the stack.
-- **Log Rotation:** Docker container logs can grow indefinitely if not managed.
+- **Log Rotation:** Docker container logs are managed, but should be checked if a specific service behaves erratically.
 
 ## 3. System Updates
 Digital sovereignty means controlling when and how you update.
-- **OS Updates:** Keep the underlying Raspberry Pi OS secure.
-- **Container Updates:** Update your stack using `docker compose pull`. Always check the changelogs of major services like Nextcloud before upgrading.
+- **OS Updates:** Keep the underlying Raspberry Pi OS secure via `apt`.
+- **Container Updates:** Update your stack manually or use Watchtower for notifications. Always check the changelogs of major services like Nextcloud before upgrading.
 
 ## 4. Automation: The Maintenance Script
-To simplify these tasks, use the provided `clean_stack.sh` utility once a month.
+To simplify these tasks, use the provided `clean_stack.sh` utility once a month. This script now includes:
+- **Docker Pruning**: Cleans up unused images.
+- **Permission Fixes**: Automatically enforces the surgical permission model (UID 33/100/999).
+- **Health Checks**: Verifies disk usage and available OS updates.
 
 ## 5. Update Strategy: Informed Manual Control
 
@@ -28,17 +29,19 @@ To maintain stability and avoid "black box" automation, this stack follows an **
 
 ### Guidelines:
 1. **Verify Backups First**: Always check your morning email report (03:00/03:30) to ensure you have a fresh, verified backup before starting any system upgrade.
-2. **Monthly Cycle**: Run the maintenance script (`clean_stack.sh`) monthly. If updates are pending, perform them manually when you have time to troubleshoot.
+2. **Monthly Cycle**: Run the maintenance script (`./clean_stack.sh`) monthly. If updates are pending, perform them manually when you have time to troubleshoot.
 3. **The Upgrade Process**:
    - Run `sudo apt update` to refresh repositories.
    - Run `sudo apt upgrade` to install packages.
    - If a kernel update is installed, a system reboot is required.
-4. **Container Hygiene**: Periodically pull new images for your stack to stay current with security patches for services like Nextcloud or Vaultwarden:
-   ```bash
-   cd ~/sovereign-stack
-   docker compose pull
-   docker compose up -d
-   ```
+4. **Container Hygiene**: Periodically pull new images for your stack to stay current with security patches:
+
+    cd ~/sovereign-stack
+    docker compose pull
+    docker compose up -d
+
+   *Note: After a container update, permissions might reset. Run `./clean_stack.sh` to restore them quickly.*
+
 ---
 
 ---

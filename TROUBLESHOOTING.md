@@ -1,4 +1,4 @@
-# Troubleshooting sovereign-stack
+# Troubleshooting sovereign-stack (v4.0)
 
 ## 1. Browser remembers old certificate (HSTS)
 If you recently changed your SSL certificate (e.g., from Let's Encrypt to Smallstep) and the browser shows a security warning, you must clear the HSTS cache.
@@ -61,21 +61,16 @@ When configuring **UFW** to allow traffic from Docker to host-mode services (lik
 
 ---
 
-## 7. Prosody: "No channel binding" in Conversations (Android)
-Android clients might fail to connect behind NPM because of TLS termination conflicts with SASL channel binding.
+## 7. Matrix: Federation / Well-Known Failures
+If you cannot chat with users on other servers (like matrix.org), your `.well-known` discovery is likely misconfigured.
+
+### Diagnosis
+Run this from a remote machine:
+
+    curl -v https://matrix.yourdomain.com/.well-known/matrix/server
 
 ### Solution
-Disable the "PLUS" SASL mechanisms in `prosody.cfg.lua`:
-
-    vi ${DOCKER_ROOT}/prosody/config/prosody.cfg.lua
-
-Add/Update:
-
-    sasl_forbidden_mechanisms = { "SCRAM-SHA-1-PLUS", "SCRAM-SHA-256-PLUS" }
-
-Restart: 
-
-    docker compose restart prosody
+Ensure Nginx Proxy Manager "Advanced" configuration includes the required CORS headers and JSON response as defined in the README.
 
 ---
 
@@ -156,12 +151,12 @@ Always run the stack's scripts as a standard user (e.g., `hvhoek`). The scripts 
 ---
 
 ## 14. Nextcloud: "Internal Server Error" after Restore
-Usually caused by incorrect ownership of the `data` directory.
+Usually caused by incorrect ownership of the `data` directory (often reset to root by rsync).
 
 ### Fix
-Run the specialized permission utility:
+Do not use `chown -R` on the root! Apply the surgical fix:
 
-    ./fix-nextcloud-perms.sh
+    sudo chown -R 33:33 ${DOCKER_ROOT}/nextcloud/data
 
 ---
 
@@ -172,6 +167,21 @@ If `wake_target.sh` reports that it cannot find the `wakeonlan` command.
 Install the utility manually:
 
     sudo apt update && sudo apt install wakeonlan -y
+
+---
+
+## 16. Docker: "Container name already in use"
+If you cannot start a service and see `Conflict. The container name "/nextcloud-db" is already in use`.
+
+### Cause
+A previous container was not removed cleanly, leaving a "ghost" container blocking the name.
+
+### Fix
+Remove the ghost container manually:
+
+    docker rm -f nextcloud-db
+    docker compose up -d nextcloud-db
+
 ---
 
 *This documentation is part of the **Sovereign Stack** project. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY. Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*

@@ -15,9 +15,9 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
+# along with this program.  If not, see https://www.gnu.org/licenses/.
 
-# sovereign-stack Master Installation & Setup Wizard v3.6.1
+# sovereign-stack Master Installation & Setup Wizard v4.0
 
 set -u
 GREEN='\033[0;32m'
@@ -30,6 +30,7 @@ ENV_EXAMPLE=".env.example"
 
 echo -e "${BLUE}==========================================${NC}"
 echo -e "${BLUE}    sovereign-stack Installation Wizard   ${NC}"
+echo -e "${BLUE}        v4.0 - Sovereign Awakening        ${NC}"
 echo -e "${BLUE}==========================================${NC}"
 
 # --- STAGE 1: System Dependencies ---
@@ -61,6 +62,13 @@ update_var() {
 
 update_var "DOCKER_ROOT" "Absolute path to project (e.g., /home/${USER}/sovereign-stack)"
 update_var "DOMAIN" "Your primary domain (e.g., example.com)"
+
+# Network & DNS (New in v4.0)
+update_var "INTERNAL_HOST_IP" "Static Internal IP of this Pi (e.g., 192.168.178.118)"
+update_var "EXTERNAL_DNS_IP" "External DNS IP (e.g., 91.221.218.218)"
+update_var "EXTERNAL_DNS_NAME" "External DNS Hostname (e.g., secure.dns.freedom.nl)"
+
+# Backup Config
 update_var "BACKUP_EMAIL" "Alert email for notifications"
 update_var "BACKUP_PASSWORD" "Encryption key for AES-256 backups"
 update_var "BACKUP_RETENTION_DAYS" "How many days to keep local backups on NVMe"
@@ -93,12 +101,12 @@ echo -e "Copying public key to the target..."
 echo -e "Please enter the password for ${BACKUP_TARGET_USER_VAL}@${BACKUP_TARGET_IP_CLEAN} to enable automation."
 ssh-copy-id -i ~/.ssh/id_ed25519.pub -o ConnectTimeout=10 "${BACKUP_TARGET_USER_VAL}@${BACKUP_TARGET_IP_CLEAN}"
 
-# --- STAGE 4: Cron Automation (v3.6.1 Timing) ---
+# --- STAGE 4: Cron Automation (v4.0 Timing) ---
 echo -e "\n${BLUE}Step 4: Configuring Automation (Crontab)...${NC}"
 D_ROOT=$(grep "^DOCKER_ROOT=" "$ENV_FILE" | cut -d'"' -f2)
 
 (crontab -l 2>/dev/null | grep -v "backup_stack.sh" | grep -v "monitor_backup.sh" | grep -v "Sovereign Stack Automatisering"; \
-echo "# Sovereign Stack Automation v3.6.1
+echo "# Sovereign Stack Automation v4.0
 # 03:00 - Start Backup Pipeline
 0 3 * * * ${D_ROOT}/backup_stack.sh
 
@@ -109,5 +117,6 @@ echo "# Sovereign Stack Automation v3.6.1
 chmod 600 "$ENV_FILE"
 chmod +x ./*.sh
 echo -e "\n${GREEN}Setup complete! Configuration saved to .env${NC}"
+echo -e "${RED}IMPORTANT: Edit .env manually to add your Home Assistant and Frigate passwords!${NC}"
 echo -e "1. Backups scheduled for 03:00 daily."
 echo -e "2. Monitoring (Dead Man's Switch) scheduled for 03:30 daily."

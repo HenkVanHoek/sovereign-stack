@@ -15,7 +15,7 @@
 * **Internal Helpers**: Use 'log_message' for timestamped entries and 'fatal_error' for critical failures with email notification.
 
 ## 3. Core Functional Requirements (The "What")
-* **Database**: Export Nextcloud MariaDB dumps using 'docker exec' and 'mariadb-dump'.
+* **Database**: Export Nextcloud MariaDB dumps using 'mariadb-dump'. Matrix (Conduit) data is handled via file-system persistence.
 * **Differentiation**: Support dynamic excludes for large folders (Frigate storage, Nextcloud data).
 * **WOL Utility**: Use 'wake_target.sh' with configurable retries and wait times.
 * **Security**: Use OpenSSL AES-256-CBC (pbkdf2) encryption for all off-site backups.
@@ -32,6 +32,8 @@
 
 ## 5. Configuration & Compliance
 * **YAML Security**: Always use quotes for passwords in YAML files.
+* **YAML Formatting**: Strict 2-space indentation for Docker Compose files.
+* **Permission Strategy**: Scripts and manual interventions must use surgical 'chown' (UID-specific: 33/100/999) instead of recursive root changes.
 * **Linter**: Scripts must pass 'yamllint' (without hyphens).
 * **Environment**: All sensitive data and paths must be sourced from a .env file.
 * **Logging**: Output redirected to ${DOCKER_ROOT}/backups/cron.log only AFTER lock is acquired.

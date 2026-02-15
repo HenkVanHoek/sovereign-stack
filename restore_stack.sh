@@ -1,6 +1,7 @@
 #!/bin/bash
 # File: restore_stack.sh
 # Part of the sovereign-stack project.
+# Version: 4.0.0 (Sovereign Awakening)
 #
 # Copyright (C) 2026 Henk van Hoek
 #
@@ -15,8 +16,9 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
-# sovereign-stack Disaster Recovery Utility v3.2
+# along with this program.  If not, see https://www.gnu.org/licenses/.
+
+# sovereign-stack Disaster Recovery Utility v4.0
 set -u
 
 # 1. Load Environment Dynamically
@@ -38,11 +40,10 @@ BACKUP_DIR="${DOCKER_ROOT}/backups"
 TEMP_RESTORE="/tmp/sovereign_restore"
 DB_EXPORT_PATH="${DOCKER_ROOT}/nextcloud/nextcloud_db_export.sql"
 
-echo "--- Sovereign Stack: Disaster Recovery Utility ---"
+echo "--- Sovereign Stack: Disaster Recovery Utility v4.0 ---"
 
 # 3. Select Backup File
 echo "Available backups in $BACKUP_DIR:"
-# Fixed ShellCheck warning by using find instead of ls
 find "$BACKUP_DIR" -maxdepth 1 -name "*.enc" -exec basename {} \;
 echo ""
 read -r -p "Enter the full filename of the backup to restore: " SELECTED_BACKUP
@@ -71,8 +72,8 @@ fi
 echo "Step 2/4: Syncing files to $DOCKER_ROOT..."
 sudo rsync -av "$TEMP_RESTORE/" "$DOCKER_ROOT/"
 
-# 6. Database Injection
-echo "Step 3/4: Restoring MariaDB database..."
+# 6. Database Injection (Nextcloud)
+echo "Step 3/4: Restoring MariaDB database (Nextcloud)..."
 if [ -f "$DB_EXPORT_PATH" ]; then
     if docker ps | grep -q "nextcloud-db"; then
         docker exec -i nextcloud-db mariadb -u nextcloud -p"$NEXTCLOUD_DB_PASSWORD" nextcloud < "$DB_EXPORT_PATH"
@@ -84,12 +85,28 @@ else
     echo "[SKIP] No SQL dump found in the backup archive."
 fi
 
-# 7. Permission Correction
+# 7. Permission Correction (Surgical Approach)
 echo "Step 4/4: Correcting file permissions..."
+
+# 7.1 General Ownership (User)
 sudo chown -R "$USER:$USER" "$DOCKER_ROOT"
 
+# 7.2 Nextcloud Data (www-data: 33)
 if [ -d "${DOCKER_ROOT}/nextcloud/data" ]; then
+    echo "Fixing Nextcloud permissions..."
     sudo chown -R 33:33 "${DOCKER_ROOT}/nextcloud/data"
+fi
+
+# 7.3 MariaDB (mysql: 999)
+if [ -d "${DOCKER_ROOT}/nextcloud/db" ]; then
+    echo "Fixing Database permissions..."
+    sudo chown -R 999:999 "${DOCKER_ROOT}/nextcloud/db"
+fi
+
+# 7.4 Matrix/Conduit (conduit: 100 - check specific UID if customized)
+if [ -d "${DOCKER_ROOT}/matrix/db" ]; then
+    echo "Fixing Matrix permissions..."
+    sudo chown -R 100:100 "${DOCKER_ROOT}/matrix/db"
 fi
 
 # 8. Cleanup

@@ -1,8 +1,7 @@
 #!/bin/bash
 # File: backup_stack.sh
 # Part of the sovereign-stack project.
-# Version: 3.6.14 (Master Spec Compliant)
-#
+# Version: 4.0.0 (Sovereign Awakening)#
 # Copyright (C) 2026 Henk van Hoek
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
+# along with this program.  If not, see https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
 
 # shellcheck disable=SC2154
 set -u

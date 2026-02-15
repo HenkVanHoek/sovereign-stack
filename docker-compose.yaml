@@ -1,336 +1,395 @@
 services:
-    portainer:
-        container_name: portainer
-        image: portainer/portainer-ce:latest
-        restart: unless-stopped
-        security_opt:
-            - "no-new-privileges:true"
-        ports:
-            - "9443:9443"
-        volumes:
-            - "/etc/localtime:/etc/localtime:ro"
-            - "/var/run/docker.sock:/var/run/docker.sock"
-            - "${DOCKER_ROOT}/portainer/data:/data"
-        networks:
-            - pi-services
+  portainer:
+    container_name: portainer
+    image: portainer/portainer-ce:latest
+    restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
+    ports:
+      - "9443:9443"
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "${DOCKER_ROOT}/portainer/data:/data"
+    networks:
+      - pi-services
 
-    frigate:
-        container_name: frigate
-        privileged: true
-        restart: unless-stopped
-        stop_grace_period: 30s
-        image: ghcr.io/blakeblackshear/frigate:stable
-        shm_size: "512mb"
-        labels:
-            - "com.centurylinklabs.watchtower.enable=false"
-        devices:
-            - "/dev/bus/usb:/dev/bus/usb"
-            - "/dev/apex_0:/dev/apex_0"
-            - "/dev/dri/renderD128:/dev/dri/renderD128"
-            - "/dev/video10:/dev/video10"
-            - "/dev/video11:/dev/video11"
-            - "/dev/video12:/dev/video12"
-            - "/dev/video13:/dev/video13"
-        volumes:
-            - "/etc/localtime:/etc/localtime:ro"
-            - "${DOCKER_ROOT}/config:/config"
-            - "${DOCKER_ROOT}/storage:/media/frigate"
-            - type: tmpfs
-              target: /tmp/cache
-              tmpfs:
-                  size: 1000000000
-        ports:
-            - "5000:5000"
-            - "8971:8971"
-            - "8554:8554"
-            - "8555:8555/tcp"
-            - "8555:8555/udp"
-        environment:
-            FRIGATE_RTSP_PASSWORD: "${FRIGATE_RTSP_PASSWORD}"
-            FRIGATE_MQTT_ENABLED: "True"
-            FRIGATE_MQTT_HOST: "mqtt"
-            FRIGATE_MQTT_PORT: "1883"
-            FRIGATE_MQTT_USER: "${FRIGATE_MQTT_USER}"
-            FRIGATE_MQTT_PASSWORD: "${FRIGATE_MQTT_PASSWORD}"
-        networks:
-            - pi-services
-        depends_on:
-            - mqtt
+  frigate:
+    container_name: frigate
+    privileged: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    image: ghcr.io/blakeblackshear/frigate:stable
+    shm_size: "512mb"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    devices:
+      - "/dev/bus/usb:/dev/bus/usb"
+      - "/dev/apex_0:/dev/apex_0"
+      - "/dev/dri/renderD128:/dev/dri/renderD128"
+      - "/dev/video10:/dev/video10"
+      - "/dev/video11:/dev/video11"
+      - "/dev/video12:/dev/video12"
+      - "/dev/video13:/dev/video13"
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "${DOCKER_ROOT}/config:/config"
+      - "${DOCKER_ROOT}/storage:/media/frigate"
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
+    ports:
+      - "5000:5000"
+      - "8971:8971"
+      - "8554:8554"
+      - "8555:8555/tcp"
+      - "8555:8555/udp"
+    environment:
+      FRIGATE_RTSP_PASSWORD: "${FRIGATE_RTSP_PASSWORD}"
+      FRIGATE_MQTT_ENABLED: "True"
+      FRIGATE_MQTT_HOST: "mqtt"
+      FRIGATE_MQTT_PORT: "1883"
+      FRIGATE_MQTT_USER: "${FRIGATE_MQTT_USER}"
+      FRIGATE_MQTT_PASSWORD: "${FRIGATE_MQTT_PASSWORD}"
+    networks:
+      - pi-services
+    depends_on:
+      - mqtt
 
-    homeassistant:
-        container_name: homeassistant
-        image: "ghcr.io/home-assistant/home-assistant:stable"
-        restart: unless-stopped
-        privileged: true
-        network_mode: host
-        labels:
-            - "com.centurylinklabs.watchtower.enable=false"
-        volumes:
-            - "${DOCKER_ROOT}/homeassistant:/config"
-            - "/etc/localtime:/etc/localtime:ro"
-        depends_on:
-            - mqtt
+  homeassistant:
+    container_name: homeassistant
+    image: "ghcr.io/home-assistant/home-assistant:stable"
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    volumes:
+      - "${DOCKER_ROOT}/homeassistant:/config"
+      - "/etc/localtime:/etc/localtime:ro"
+    depends_on:
+      - mqtt
 
-    mqtt:
-        container_name: mqtt
-        image: eclipse-mosquitto:latest
-        restart: unless-stopped
-        ports:
-            - "1883:1883"
-            - "9001:9001"
-        volumes:
-            - "${DOCKER_ROOT}/mosquitto/config:/mosquitto/config"
-            - "${DOCKER_ROOT}/mosquitto/data:/mosquitto/data"
-            - "${DOCKER_ROOT}/mosquitto/log:/mosquitto/log"
-        networks:
-            - pi-services
+  mqtt:
+    container_name: mqtt
+    image: eclipse-mosquitto:latest
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - "${DOCKER_ROOT}/mosquitto/config:/mosquitto/config"
+      - "${DOCKER_ROOT}/mosquitto/data:/mosquitto/data"
+      - "${DOCKER_ROOT}/mosquitto/log:/mosquitto/log"
+    networks:
+      - pi-services
 
-    adguardhome:
-        container_name: adguardhome
-        image: adguard/adguardhome:latest
-        restart: unless-stopped
-        ports:
-            - "53:53/tcp"
-            - "53:53/udp"
-            - "3000:3000/tcp"
-            - "8080:80/tcp"
-        volumes:
-            - "${DOCKER_ROOT}/adguardhome/work:/opt/adguardhome/work"
-            - "${DOCKER_ROOT}/adguardhome/conf:/opt/adguardhome/conf"
-            - "${DOCKER_ROOT}/npm/letsencrypt:/opt/adguardhome/conf/letsencrypt:ro"
-        networks:
-            - pi-services
-        extra_hosts:
-            - "${DOMAIN}:192.168.178.118"
-            - "secure.dns.freedom.nl:91.221.218.218"
+  adguardhome:
+    container_name: adguardhome
+    image: adguard/adguardhome:latest
+    restart: unless-stopped
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "3000:3000/tcp"
+      - "8080:80/tcp"
+    volumes:
+      - "${DOCKER_ROOT}/adguardhome/work:/opt/adguardhome/work"
+      - "${DOCKER_ROOT}/adguardhome/conf:/opt/adguardhome/conf"
+      - "${DOCKER_ROOT}/npm/letsencrypt:/opt/adguardhome/conf/letsencrypt:ro"
+    networks:
+      - pi-services
+    extra_hosts:
+      - "${DOMAIN}:${INTERNAL_HOST_IP}"
+      - "${DNS_SERVER_NAME}:${DNS_SERVER_IP}"
 
-    prosody:
-        container_name: prosody
-        image: prosodyim/prosody:0.12
-        platform: linux/arm64/v8
-        restart: unless-stopped
-        volumes:
-            - "${DOCKER_ROOT}/prosody/config:/etc/prosody"
-            - "${DOCKER_ROOT}/npm/letsencrypt/archive/${NPM_CERT_ID}/privkey1.pem:/etc/prosody/certs/privkey.pem:ro"
-            - "${DOCKER_ROOT}/npm/letsencrypt/archive/${NPM_CERT_ID}/fullchain1.pem:/etc/prosody/certs/fullchain.pem:ro"
-            - "${DOCKER_ROOT}/prosody/data:/var/lib/prosody"
-            - "${DOCKER_ROOT}/prosody/uploads:/var/lib/prosody/uploads"
-        networks:
-            - pi-services
+  conduit:
+    image: matrixconduit/matrix-conduit:latest
+    container_name: conduit
+    restart: unless-stopped
+    ports:
+      - "${CONDUIT_PORT}:6167"
+    environment:
+      CONDUIT_SERVER_NAME: "${DOMAIN}"
+      CONDUIT_DATABASE_PATH: "/var/lib/matrix-conduit"
+      CONDUIT_ALLOW_REGISTRATION: "false"
+      CONDUIT_ALLOW_FEDERATION: "true"
+      CONDUIT_MAX_REQUEST_SIZE: "20000000"
+      CONDUIT_TRUSTED_SERVERS: '["matrix.org"]'
+      CONDUIT_DATABASE_BACKEND: "rocksdb"
+      CONDUIT_ADDRESS: "0.0.0.0"
+      CONDUIT_PORT: "6167"
+      CONDUIT_CONFIG: ""
+      CONDUIT_ADMIN_PASSWORD: "${CONDUIT_ADMIN_PASSWORD}"
+    volumes:
+      - "${DOCKER_ROOT}/conduit:/var/lib/matrix-conduit"
+    networks:
+      - pi-services
 
-    vaultwarden:
-        container_name: vaultwarden
-        image: vaultwarden/server:latest
-        restart: unless-stopped
-        environment:
-            SIGNUPS_ALLOWED: "${SIGNUPS_ALLOWED}"
-            WEBSOCKET_ENABLED: "true"
-            DOMAIN: "https://vault.${DOMAIN}"
-        volumes:
-            - "${DOCKER_ROOT}/vaultwarden:/data"
-        networks:
-            - pi-services
 
-    npm:
-        container_name: npm
-        image: jc21/nginx-proxy-manager:latest
-        restart: unless-stopped
-        labels:
-            - "com.centurylinklabs.watchtower.enable=false"
-        ports:
-            - "80:80/tcp"
-            - "443:443/tcp"
-            - "5222:5222/tcp"
-            - "8181:81/tcp"
-            - "5269:5269/tcp"
-        volumes:
-            - "${DOCKER_ROOT}/npm/data:/data"
-            - "${DOCKER_ROOT}/npm/letsencrypt:/etc/letsencrypt"
-        networks:
-            - pi-services
+  conduit-family:
+    image: matrixconduit/matrix-conduit:latest
+    container_name: conduit-family
+    restart: unless-stopped
+    ports:
+      - "${SECOND_CONDUIT_PORT}:6167"
+    environment:
+      CONDUIT_SERVER_NAME: "${SECOND_DOMAIN}"
+      CONDUIT_DATABASE_PATH: "/var/lib/matrix-conduit"
+      CONDUIT_ALLOW_REGISTRATION: "false"
+      CONDUIT_ALLOW_FEDERATION: "true"
+      CONDUIT_MAX_REQUEST_SIZE: "20000000"
+      CONDUIT_TRUSTED_SERVERS: '["matrix.org"]'
+      CONDUIT_DATABASE_BACKEND: "rocksdb"
+      CONDUIT_ADDRESS: "0.0.0.0"
+      CONDUIT_PORT: "6167"
+      CONDUIT_CONFIG: ""
+      CONDUIT_ADMIN_PASSWORD: "${CONDUIT_FAMILY_ADMIN_PASSWORD}"
+    volumes:
+      - "${DOCKER_ROOT}/conduit-family:/var/lib/matrix-conduit"
+    networks:
+      - pi-services
 
-    watchtower:
-        container_name: watchtower
-        image: containrrr/watchtower
-        restart: unless-stopped
-        volumes:
-            - "/var/run/docker.sock:/var/run/docker.sock"
-        environment:
-            WATCHTOWER_POLL_INTERVAL: "86400"
-            WATCHTOWER_CLEANUP: "true"
-        networks:
-            - pi-services
+  vaultwarden:
+    container_name: vaultwarden
+    image: vaultwarden/server:latest
+    restart: unless-stopped
+    environment:
+      SIGNUPS_ALLOWED: "${SIGNUPS_ALLOWED}"
+      WEBSOCKET_ENABLED: "true"
+      DOMAIN: "https://vault.${DOMAIN}"
+    volumes:
+      - "${DOCKER_ROOT}/vaultwarden:/data"
+    networks:
+      - pi-services
 
-    step-ca:
-        image: "smallstep/step-ca"
-        container_name: "step-ca"
-        labels:
-            - "com.centurylinklabs.watchtower.enable=false"
-        networks:
-            - "pi-services"
-        ports:
-            - "9000:9000"
-        volumes:
-            - "${DOCKER_ROOT}/step-ca:/home/step"
-        environment:
-            - DOCKER_STEPCA_INIT_NAME="Sovereign CA"
-            - DOCKER_STEPCA_INIT_DNS_NAMES="localhost,step-ca,${STEP_CA_DNS_IP}"
-            - DOCKER_STEPCA_INIT_PASSWORD="${STEPCA_PASSWORD}"
-            - DOCKER_STEPCA_INIT_PROVISIONER_NAME="${STEPCA_PROVISIONER_NAME}"
-            - DOCKER_STEPCA_INIT_PROVISIONER_PASSWORD="${STEPCA_PROVISIONER_PASSWORD}"
-        restart: "unless-stopped"
+  npm:
+    container_name: npm
+    image: jc21/nginx-proxy-manager:latest
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    ports:
+      - "80:80/tcp"
+      - "443:443/tcp"
+      #            - "5222:5222/tcp" was voor prosody
+      - "8181:81/tcp"
+    #            - "5269:5269/tcp" was voor prosody
+    volumes:
+      - "${DOCKER_ROOT}/npm/data:/data"
+      - "${DOCKER_ROOT}/npm/letsencrypt:/etc/letsencrypt"
+    #            - "${DOCKER_ROOT}/prosody/www:/data/prosody_www:ro"
+    networks:
+      - pi-services
 
-    fail2ban:
-        image: crazymax/fail2ban:latest
-        container_name: fail2ban
-        restart: unless-stopped
-        network_mode: host
-        cap_add:
-            - NET_ADMIN
-            - NET_RAW
-        volumes:
-            - "${DOCKER_ROOT}/fail2ban/data:/data"
-            - "${DOCKER_ROOT}/npm/data/logs:/var/log/npm:ro"
-            - "${DOCKER_ROOT}/forgejo/data/gitea/log:/var/log/forgejo:ro"
-        environment:
-            - TZ="${TZ}"
-            - F2B_LOG_TARGET="STDOUT"
-            - F2B_LOG_LEVEL="INFO"
-            - F2B_DB_PURGE_AGE="1d"
-            - SS_TPL_DESTMAIL="${BACKUP_EMAIL}"
-            - SS_TPL_SENDERNAME="Sovereign-Security"
-            - SS_TPL_SENDERMAIL="${BACKUP_EMAIL}"
-            - SS_TPL_SMTPHOST="${SMTP_HOST}"
-            - SS_TPL_SMTPPORT="${SMTP_PORT}"
-            - SS_TPL_SMTPUSER="${BACKUP_EMAIL}"
-            - SS_TPL_SMTPPASS="${BACKUP_PASSWORD}"
-            - SS_TPL_SMTPTLS="${SMTP_TLS}"
+  #    watchtower:
+  #        container_name: watchtower
+  #        image: containrrr/watchtower
+  #        restart: unless-stopped
+  #        volumes:
+  #            - "/var/run/docker.sock:/var/run/docker.sock"
+  #        environment:
+  #            WATCHTOWER_POLL_INTERVAL: "86400"
+  #            WATCHTOWER_CLEANUP: "true"
+  #        networks:
+  #            - pi-services
 
-    glances:
-        image: nicolargo/glances:latest
-        container_name: glances
-        restart: unless-stopped
-        pid: host
-        network_mode: host
-        volumes:
-            - /var/run/docker.sock:/var/run/docker.sock:ro
-        environment:
-            - "GLANCES_OPT=-w"
+  step-ca:
+    image: "smallstep/step-ca"
+    container_name: "step-ca"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    networks:
+      - "pi-services"
+    ports:
+      - "9000:9000"
+    volumes:
+      - "${DOCKER_ROOT}/step-ca:/home/step"
+    environment:
+      DOCKER_STEPCA_INIT_NAME: "Sovereign CA"
+      DOCKER_STEPCA_INIT_DNS_NAMES: "localhost,step-ca,${STEP_CA_DNS_IP}"
+      DOCKER_STEPCA_INIT_PASSWORD: "${STEPCA_PASSWORD}"
+      DOCKER_STEPCA_INIT_PROVISIONER_NAME: "${STEPCA_PROVISIONER_NAME}"
+      DOCKER_STEPCA_INIT_PROVISIONER_PASSWORD: "${STEPCA_PROVISIONER_PASSWORD}"
+    restart: "unless-stopped"
 
-    nextcloud-db:
-        image: mariadb:10.11
-        container_name: nextcloud-db
-        restart: always
-        command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
-        labels:
-            - "com.centurylinklabs.watchtower.enable=false"
-        env_file: .env
-        networks:
-            - nextcloud-internal
-        volumes:
-            - ./nextcloud/db:/var/lib/mysql
-        environment:
-            MYSQL_ROOT_PASSWORD: "${NEXTCLOUD_DB_ROOT_PASSWORD}"
-            MYSQL_PASSWORD: "${NEXTCLOUD_DB_PASSWORD}"
-            MYSQL_DATABASE: "${NEXTCLOUD_DB_NAME}"
-            MYSQL_USER: "${NEXTCLOUD_DB_USER}"
+  #    fail2ban:
+  #        image: crazymax/fail2ban:latest
+  #        container_name: fail2ban
+  #        restart: unless-stopped
+  #        network_mode: host
+  #        cap_add:
+  #            - NET_ADMIN
+  #            - NET_RAW
+  #        volumes:
+  #            - "${DOCKER_ROOT}/fail2ban/data:/data"
+  #            - "${DOCKER_ROOT}/npm/data/logs:/var/log/npm:ro"
+  #            - "${DOCKER_ROOT}/forgejo/data/gitea/log:/var/log/forgejo:ro"
+  #        environment:
+  #            TZ: "${TZ}"
+  #            F2B_LOG_TARGET: "STDOUT"
+  #            F2B_LOG_LEVEL: "INFO"
+  #            F2B_DB_PURGE_AGE: "1d"
+  #            SS_TPL_DESTMAIL: "${BACKUP_EMAIL}"
+  #            SS_TPL_SENDERNAME: "Sovereign-Security"
+  #            SS_TPL_SENDERMAIL: "${BACKUP_EMAIL}"
+  #            SS_TPL_SMTPHOST: "${SMTP_HOST}"
+  #            SS_TPL_SMTPPORT: "${SMTP_PORT}"
+  #            SS_TPL_SMTPUSER: "${BACKUP_EMAIL}"
+  #            SS_TPL_SMTPPASS: "${BACKUP_PASSWORD}"
+  #            SS_TPL_SMTPTLS: "${SMTP_TLS}"
 
-    nextcloud-redis:
-        image: redis:alpine
-        container_name: nextcloud-redis
-        restart: always
-        networks:
-            - nextcloud-internal
+  glances:
+    image: nicolargo/glances:latest
+    container_name: glances
+    restart: unless-stopped
+    pid: host
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - "GLANCES_OPT: -w"
 
-    nextcloud-app:
-        image: nextcloud:stable
-        container_name: nextcloud-app
-        restart: always
-        labels:
-            - "com.centurylinklabs.watchtower.enable=false"
-        depends_on:
-            - nextcloud-db
-            - nextcloud-redis
-        env_file: .env
-        ports:
-            - "8088:80"
-        networks:
-            - pi-services
-            - nextcloud-internal
-        volumes:
-            - ./nextcloud/data:/var/www/html
-        environment:
-            - MYSQL_PASSWORD="${NEXTCLOUD_DB_PASSWORD}"
-            - MYSQL_DATABASE="${NEXTCLOUD_DB_NAME}"
-            - MYSQL_USER="${NEXTCLOUD_DB_USER}"
-            - MYSQL_HOST="nextcloud-db"
-            - REDIS_HOST="nextcloud-redis"
-            - NEXTCLOUD_TRUSTED_DOMAINS="${NEXTCLOUD_DOMAIN}"
-            - MAIL_FROM_ADDRESS="${NEXTCLOUD_MAIL_FROM_ADDRESS}"
-            - MAIL_DOMAIN="${NEXTCLOUD_MAIL_DOMAIN}"
-            - SMTP_HOST="${NEXTCLOUD_MAIL_SMTPHOST}"
-            - SMTP_PORT="${NEXTCLOUD_MAIL_SMTPPORT}"
-            - SMTP_SECURE="${NEXTCLOUD_MAIL_SMTPSECURE}"
-            - SMTP_AUTHTYPE="LOGIN"
-            - SMTP_AUTH="${NEXTCLOUD_MAIL_SMTPAUTH}"
-            - SMTP_NAME="${NEXTCLOUD_MAIL_SMTPNAME}"
-            - SMTP_PASSWORD="${NEXTCLOUD_MAIL_SMTPPASSWORD}"
+  nextcloud-db:
+    image: mariadb:10.11
+    container_name: nextcloud-db
+    restart: always
+    # English: Added --log-bin to resolve the warning and enable binary logging for ROW format
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    env_file: .env
+    networks:
+      - nextcloud-internal
+    volumes:
+      - ./nextcloud/db:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "${NEXTCLOUD_DB_ROOT_PASSWORD}"
+      MYSQL_PASSWORD: "${NEXTCLOUD_DB_PASSWORD}"
+      MYSQL_DATABASE: "${NEXTCLOUD_DB_NAME}"
+      MYSQL_USER: "${NEXTCLOUD_DB_USER}"
 
-    homarr:
-        container_name: homarr
-        image: ghcr.io/ajnart/homarr:latest
-        restart: unless-stopped
-        volumes:
-            - ./homarr/configs:/app/data/configs
-            - ./homarr/icons:/app/public/icons
-            - /var/run/docker.sock:/var/run/docker.sock
-        ports:
-            - "7575:7575"
-        environment:
-            - TZ="${TZ}"
-        networks:
-            - pi-services
+  nextcloud-redis:
+    image: redis:alpine
+    container_name: nextcloud-redis
+    restart: always
+    networks:
+      - nextcloud-internal
 
-    forgejo-db:
-        container_name: forgejo-db
-        image: mariadb:10.11
-        restart: always
-        networks:
-            - pi-services
-        environment:
-            MYSQL_ROOT_PASSWORD: "${NEXTCLOUD_DB_ROOT_PASSWORD}"
-            MYSQL_PASSWORD: "${FORGEJO_DB_PASSWORD}"
-            MYSQL_DATABASE: "${FORGEJO_DB_NAME}"
-            MYSQL_USER: "${FORGEJO_DB_USER}"
-        volumes:
-            - "${DOCKER_ROOT}/forgejo/db:/var/lib/mysql"
+  nextcloud-app:
+    image: nextcloud:stable
+    container_name: nextcloud-app
+    restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    depends_on:
+      - nextcloud-db
+      - nextcloud-redis
+    env_file: .env
+    ports:
+      - "8088:80"
+    networks:
+      - pi-services
+      - nextcloud-internal
+    volumes:
+      - ./nextcloud/data:/var/www/html
+    environment:
+      # English: Switched to map notation to avoid DNS resolution issues with quotes in list-style strings
+      MYSQL_PASSWORD: "${NEXTCLOUD_DB_PASSWORD}"
+      MYSQL_DATABASE: "${NEXTCLOUD_DB_NAME}"
+      MYSQL_USER: "${NEXTCLOUD_DB_USER}"
+      MYSQL_HOST: nextcloud-db
+      REDIS_HOST: nextcloud-redis
+      NEXTCLOUD_TRUSTED_DOMAINS: "${NEXTCLOUD_TRUSTED_DOMAINS}"
+      MAIL_FROM_ADDRESS: "${NEXTCLOUD_MAIL_FROM_ADDRESS}"
+      MAIL_DOMAIN: "${NEXTCLOUD_MAIL_DOMAIN}"
+      SMTP_HOST: "${NEXTCLOUD_MAIL_SMTPHOST}"
+      SMTP_PORT: "${NEXTCLOUD_MAIL_SMTPPORT}"
+      SMTP_SECURE: "${NEXTCLOUD_MAIL_SMTPSECURE}"
+      SMTP_AUTHTYPE: LOGIN
+      SMTP_AUTH: "${NEXTCLOUD_MAIL_SMTPAUTH}"
+      SMTP_NAME: "${NEXTCLOUD_MAIL_SMTPNAME}"
+      SMTP_PASSWORD: "${NEXTCLOUD_MAIL_SMTPPASSWORD}"
 
-    forgejo:
-        container_name: forgejo
-        image: codeberg.org/forgejo/forgejo:14
-        restart: unless-stopped
-        depends_on:
-            - forgejo-db
-        networks:
-            - pi-services
-        environment:
-            - USER_UID="1000"
-            - USER_GID="1000"
-            - FORGEJO__database__DB_TYPE="mysql"
-            - FORGEJO__database__HOST="forgejo-db:3306"
-            - FORGEJO__database__NAME="${FORGEJO_DB_NAME}"
-            - FORGEJO__database__USER="${FORGEJO_DB_USER}"
-            - FORGEJO__database__PASSWD="${FORGEJO_DB_PASSWORD}"
-        volumes:
-            - "${DOCKER_ROOT}/forgejo/data:/data"
-            - /etc/localtime:/etc/localtime:ro
-        ports:
-            - "2222:22"
+  homarr:
+    container_name: homarr
+    image: ghcr.io/ajnart/homarr:latest
+    restart: unless-stopped
+    volumes:
+      - ./homarr/configs:/app/data/configs
+      - ./homarr/icons:/app/public/icons
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "7575:7575"
+    environment:
+      - TZ="${TZ}"
+    networks:
+      - pi-services
+
+  forgejo-db:
+    container_name: forgejo-db
+    image: mariadb:10.11
+    restart: always
+    networks:
+      - pi-services
+    environment:
+      MYSQL_ROOT_PASSWORD: "${NEXTCLOUD_DB_ROOT_PASSWORD}"
+      MYSQL_PASSWORD: "${FORGEJO_DB_PASSWORD}"
+      MYSQL_DATABASE: "${FORGEJO_DB_NAME}"
+      MYSQL_USER: "${FORGEJO_DB_USER}"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    volumes:
+      - "${DOCKER_ROOT}/forgejo/db:/var/lib/mysql"
+
+  forgejo:
+    container_name: forgejo
+    image: codeberg.org/forgejo/forgejo:14
+    restart: unless-stopped
+    depends_on:
+      - forgejo-db
+    networks:
+      - pi-services
+    environment:
+      - USER=git
+      - USER_UID=1000
+      - USER_GID=1000
+      - FORGEJO__database__DB_TYPE=mysql
+      - FORGEJO__database__HOST=forgejo-db:3306
+      - FORGEJO__database__NAME=${FORGEJO_DB_NAME}
+      - FORGEJO__database__USER=${FORGEJO_DB_USER}
+      - FORGEJO__database__PASSWD="${FORGEJO_DB_PASSWORD}"
+      - FORGEJO__server__DOMAIN=${DOMAIN}
+      - FORGEJO__server__ROOT_URL=https://git.${DOMAIN}
+      - FORGEJO__server__HTTP_PORT=3000
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    volumes:
+      - "${DOCKER_ROOT}/forgejo/data:/data"
+      - "/etc/localtime:/etc/localtime:ro"
+    ports:
+      - "2222:22"
+
+  signal-api:
+    image: bbernhard/signal-cli-rest-api:latest
+    container_name: signal-api
+    environment:
+      - MODE=json-rpc
+      - SIGNAL_CLI_API_PASSWORD=${SIGNAL_CLI_API_PASSWORD}
+    ports:
+      - "8090:8080"
+    volumes:
+      - ./signal-data:/home/.local/share/signal-cli
+    restart: unless-stopped
+
+
+
 networks:
-    pi-services:
-        name: pi-services
-        driver: bridge
-    nextcloud-internal:
-        name: nextcloud-internal
-        driver: bridge
-        internal: true
+  pi-services:
+    name: pi-services
+    driver: bridge
+  nextcloud-internal:
+    name: nextcloud-internal
+    driver: bridge
+    internal: true

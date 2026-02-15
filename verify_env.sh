@@ -1,7 +1,7 @@
 #!/bin/bash
 # File: verify_env.sh
 # Part of the sovereign-stack project.
-# Version: 1.3 (Master Spec Compliant)
+# Version: 4.0.0 (Sovereign Awakening)
 #
 # Copyright (C) 2026 Henk van Hoek
 #
@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
+# along with this program.  If not, see https://www.gnu.org/licenses/.
 
 set -u
 
@@ -26,9 +26,12 @@ if [[ $EUID -eq 0 ]]; then
     exit 1
 fi
 
-# 2. Variable Check
+# 2. Variable Check (Updated for v4.0 Network Spec)
 REQUIRED_VARS=(
     "DOCKER_ROOT"
+    "INTERNAL_HOST_IP"
+    "EXTERNAL_DNS_IP"
+    "EXTERNAL_DNS_NAME"
     "BACKUP_PASSWORD"
     "BACKUP_EMAIL"
     "BACKUP_TARGET_IP"
@@ -42,6 +45,14 @@ REQUIRED_VARS=(
 )
 
 MISSING=0
+# Load .env if it exists in the same directory
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+if [ -f "${SCRIPT_DIR}/.env" ]; then
+    set -a
+    source <(sed 's/\r$//' "${SCRIPT_DIR}/.env")
+    set +a
+fi
+
 for var in "${REQUIRED_VARS[@]}"; do
     if [ -z "${!var:-}" ]; then
         echo "[ERROR] Environment variable $var is not set in .env" >&2
@@ -50,6 +61,7 @@ for var in "${REQUIRED_VARS[@]}"; do
 done
 
 if [ "$MISSING" -gt 0 ]; then
+    echo "[FATAL] Missing $MISSING required variables. Check your .env file." >&2
     exit 1
 fi
 

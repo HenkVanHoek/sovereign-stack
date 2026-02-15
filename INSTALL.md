@@ -1,6 +1,6 @@
-# Installation & Configuration Guide
+# Installation & Configuration Guide (v4.0)
 
-This guide provides step-by-step instructions to deploy and fine-tune your **sovereign-stack**.
+This guide provides step-by-step instructions to deploy and fine-tune your **sovereign-stack v4.0**.
 
 ## 1. Prerequisites
 Before starting, ensure you have:
@@ -20,7 +20,7 @@ The sovereign-stack is designed to run from a dedicated directory in your home f
     Best for users without pre-configured SSH keys on GitHub.
 
     cd ~
-    git clone [https://github.com/your-username/sovereign-stack.git](https://github.com/your-username/sovereign-stack.git)
+    git clone https://github.com/your-username/sovereign-stack.git
     cd sovereign-stack
 
 * **Option B: SSH (Recommended for developers)**
@@ -31,7 +31,7 @@ The sovereign-stack is designed to run from a dedicated directory in your home f
     cd sovereign-stack
 
 ### 2.2 Run the Installation Wizard
-The wizard will create your local `.env` file and configure your security keys.
+The wizard will create your local `.env` file and configure your security keys and DNS settings.
 
     chmod +x INSTALL.sh
     ./INSTALL.sh
@@ -97,7 +97,7 @@ To ensure your data is safe, use the system cron table to schedule the backup pi
 
 2.  **Add the following lines:**
 
-    # Sovereign Stack Automation v3.6.1
+    # Sovereign Stack Automation v4.0
     # 03:00 - Start Backup Pipeline
     0 3 * * * ~/sovereign-stack/backup_stack.sh
 
@@ -105,34 +105,35 @@ To ensure your data is safe, use the system cron table to schedule the backup pi
     30 3 * * * ~/sovereign-stack/monitor_backup.sh
 ---
 
-## 6. Prosody: Replacing WhatsApp/Signal
+## 6. Matrix: Replacing WhatsApp/Signal
 
-To use Prosody as your primary communication server, you must create user accounts.
+To use Matrix (Conduit) as your primary communication server:
 
-1.  **Create your first user:**
-    Replace `user` and `yourdomain.com` with your actual details.
+1.  **Verify Domain Delegation:**
+    Ensure your `.well-known` settings are correct so external servers can find you.
 
-    docker exec -it prosody prosodyctl register user yourdomain.com yourpassword
+    curl -v https://matrix.yourdomain.com/.well-known/matrix/server
 
-2.  **Enable OMEMO (End-to-End Encryption):**
-    Ensure your Prosody configuration (`prosody.cfg.lua`) includes `mod_mam` (message archiving) and `mod_pep` to support modern encrypted clients.
+2.  **Create User:**
+    Use a client like **Element X** (Mobile) or **Element Desktop**. Enter your homeserver URL (`https://matrix.yourdomain.com`) and register a new account.
+    *Note: Registration is controlled by the `SIGNUPS_ALLOWED` variable in your `.env`.*
 
 ---
 
-## 7. Nextcloud: Replacing Microsoft Office
+## 7. Nextcloud & Office: Replacing Microsoft 365
 
-To transition away from Office 365, Nextcloud must be optimized for performance.
+To transition away from Office 365, Nextcloud is paired with Collabora Online.
 
-1.  **Enable Office Features:**
-    Install the **Nextcloud Office** (Collabora) or **OnlyOffice** app from the Nextcloud App Store.
+1.  **Verify Collabora:**
+    Open a Word document (`.docx`) in Nextcloud. It should load immediately in the browser via the Collabora container.
 
 2.  **Optimization (Memory Caching):**
     Your stack includes **Redis**. Ensure Nextcloud is utilizing it by checking your `config.php` for the correct Redis host and port (6379).
 
-3.  **Fix Permissions:**
-    If you encounter "Access Denied" errors after a restore or migration, run the provided utility:
+3.  **Fix Permissions (Surgical):**
+    If you encounter "Access Denied" errors, DO NOT run `chown -R` on the root. Use the specific fix:
 
-    ./fix-nextcloud-perms.sh
+    sudo chown -R 33:33 ./nextcloud/data
 
 ---
 
@@ -167,17 +168,19 @@ Ensure all services started correctly via the terminal:
 
 ---
 
-## 10. Homarr Service Integration Reference
+## 10. Homarr Service Integration Reference (v4.0)
 
 | Service                 | Icon Name             | Internal Docker URL         | Official Website                                       |
 |:------------------------|:----------------------|:----------------------------|:-------------------------------------------------------|
 | **Nextcloud**           | `nextcloud`           | `http://nextcloud-app:80`   | [nextcloud.com](https://nextcloud.com)                 |
+| **Collabora**           | `libreoffice`         | `http://collabora:9980`     | [collaboraoffice.com](https://collaboraoffice.com)     |
 | **Forgejo**             | `forgejo`             | `http://forgejo:3000`       | [forgejo.org](https://forgejo.org)                     |
-| **Prosody**             | `prosody`             | `http://prosody:5280/admin` | [prosody.im](https://prosody.im)                       |
+| **Matrix (Conduit)**    | `matrix`              | `http://matrix:6167`        | [conduit.rs](https://conduit.rs)                       |
 | **AdGuard Home**        | `adguard-home`        | `http://adguardhome:3000`   | [adguard.com](https://adguard.com)                     |
 | **Vaultwarden**         | `bitwarden`           | `http://vaultwarden:80`     | [bitwarden.com](https://bitwarden.com)                 |
 | **Home Assistant**      | `home-assistant`      | `http://homeassistant:8123` | [home-assistant.io](https://home-assistant.io)         |
 | **Frigate**             | `frigate`             | `http://frigate:5000`       | [frigate.video](https://frigate.video)                 |
+| **Portainer**           | `portainer`           | `http://portainer:9000`     | [portainer.io](https://portainer.io)                   |
 | **Nginx Proxy Manager** | `nginx-proxy-manager` | `http://npm:81`             | [nginxproxymanager.com](https://nginxproxymanager.com) |
 
 ### 10.1 Adding Widgets
@@ -190,4 +193,4 @@ To ensure your dashboard configuration is safe, export your layout via **Managem
 
 ---
 
-*This documentation is part of the **Sovereign Stack** project. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY. Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*
+*This documentation is part of the **Sovereign Stack** project. This program is distributed in the hope that it will

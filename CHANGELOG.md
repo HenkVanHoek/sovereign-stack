@@ -5,6 +5,28 @@ All notable changes to the Sovereign Stack project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2026-02-15 "The Sovereign Awakening"
+
+### Added
+- **Communication**: Replaced Prosody (XMPP) with **Matrix (Conduit)** for modern, federated messaging.
+- **Home Automation**: Added **Home Assistant Core**, **Mosquitto** (MQTT), and **Frigate** (NVR/AI).
+- **Office Suite**: Integrated **Collabora Online** for real-time document editing in Nextcloud.
+- **Performance**: Added **Nextcloud Notify Push** (High Performance Backend).
+- **Management**: Added **Portainer** for container visualization and management.
+- **Networking**: Added specific `.env` variables for split-DNS (`EXTERNAL_DNS_IP`, `EXTERNAL_DNS_NAME`, `INTERNAL_HOST_IP`).
+
+### Changed
+- **Breaking**: Complete overhaul of `docker-compose.yaml` to strict **2-space indentation** and quoted passwords.
+- **Breaking**: `.env` structure changed; legacy DNS variables deprecated.
+- **Security**: Adopted a "Surgical Permission" model. Scripts now avoid broad `chown -R` commands and target specific UID/GIDs (33, 100, 999).
+- **Documentation**: `README.md` and manual rewritten to English with detailed service enumeration (19+ services).
+
+### Fixed
+- Fixed Docker container name conflicts ("ghost containers") during restarts.
+- Fixed `restore_stack.sh` permissions logic to include Matrix (UID 100) and Database (UID 999) folders.
+
+---
+
 ## [3.6.1] - 2026-01-25
 
 ### Added
@@ -52,4 +74,6 @@ Starting with **v3.6.1**, the project has transitioned to a structured release c
 
 ---
 
-*This documentation is part of the **Sovereign Stack** project. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY. Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*
+*This documentation is part of the **Sovereign Stack** project. 
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY.
+Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*

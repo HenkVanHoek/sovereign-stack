@@ -8,7 +8,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 
-# Restoration Guide: sovereign-stack
+# Restoration Guide: sovereign-stack (v4.0)
 
 This guide explains how to restore your services from the encrypted archives created by `backup_stack.sh`. You can use the automated `restore_stack.sh` script or follow these manual steps.
 
@@ -42,16 +42,20 @@ Extract the files into your project directory. We use `/home/${USER}/docker` as 
     
     docker exec -i nextcloud-db mariadb -u nextcloud -p"YOUR_DB_PASSWORD" nextcloud < /home/${USER}/docker/nextcloud/nextcloud_db_export.sql
 
-### Step D: Restore Permissions & Start Stack
-Use the `fix-nextcloud-perms.sh` script or apply these manual commands to ensure the webserver (UID 33) has access:
+### Step D: Surgical Permission Fix (Critical)
+After extraction, file ownership may be reset to root. You MUST restore service-specific permissions:
 
-    # Reset general ownership to local user
+    # 1. Reset general ownership to local user
     sudo chown -R $USER:$USER /home/${USER}/docker
     
-    # Specific fix for Nextcloud Data (www-data)
+    # 2. Nextcloud Data (www-data)
     sudo chown -R 33:33 /home/${USER}/docker/nextcloud/data
     
-    # Bring the full stack online
+    # 3. Matrix / Conduit Database (conduit)
+    # Check your container UID if different, usually 100 or root
+    sudo chown -R 100:100 /home/${USER}/docker/matrix/db
+    
+    # 4. Bring the full stack online
     docker compose up -d
 
 ---
@@ -77,11 +81,11 @@ If `INCLUDE_NEXTCLOUD_DATA="true"` was set, trigger a manual scan if files do no
 
 ## 5. Troubleshooting
 
-| Issue                 | Solution                                                                              |
-|:----------------------|:--------------------------------------------------------------------------------------|
-| **Decryption Failed** | Verify `BACKUP_PASSWORD`. V3.x scripts strictly require `-pbkdf2`. |
+| Issue                 | Solution                                                           |
+|:----------------------|:-------------------------------------------------------------------|
+| **Decryption Failed** | Verify `BACKUP_PASSWORD`. V4.x scripts strictly require `-pbkdf2`. |
 | **Bad Magic Number**  | The file is corrupted or was not encrypted with OpenSSL.           |
-| **Permission Denied** | Use `sudo` for extraction and run `fix-nextcloud-perms.sh`.        |
+| **Permission Denied** | Use `sudo` for extraction and run the `chown` commands in Step D.  |
 | **Database Error**    | Ensure the `nextcloud-db` container is running before importing.   |
 
 ---
@@ -93,4 +97,6 @@ If you edited scripts on Windows, repair them using `sed` to remove hidden `^M` 
 
 ---
 
-*This documentation is part of the **Sovereign Stack** project. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY. Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*
+*This documentation is part of the **Sovereign Stack** project. 
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY. 
+Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*

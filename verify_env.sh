@@ -1,47 +1,83 @@
 #!/bin/bash
 # File: verify_env.sh
 # Part of the sovereign-stack project.
-# Version: 4.0.0 (Sovereign Awakening)
+# Version: 4.1.0 (Integrity Update)
 #
 # Copyright (C) 2026 Henk van Hoek
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see https://www.gnu.org/licenses/.
+# the Free Software Foundation, either version 3 of the License.
 
 set -u
 
-# 1. Identity Guard (Sectie 2: Mandatory for every script)
+# 1. Identity Guard
 if [[ $EUID -eq 0 ]]; then
     echo "[ERROR] This script should NOT be run with sudo or as root." >&2
     exit 1
 fi
 
-# 2. Variable Check (Updated for v4.0 Network Spec)
+# 2. Variable Check (Full 56-variable sync)
 REQUIRED_VARS=(
+    "TZ"
+    "DOMAIN"
+    "SECOND_DOMAIN"
     "DOCKER_ROOT"
     "INTERNAL_HOST_IP"
     "EXTERNAL_DNS_IP"
     "EXTERNAL_DNS_NAME"
-    "BACKUP_PASSWORD"
+    "FRIGATE_RTSP_PASSWORD"
+    "FRIGATE_MQTT_USER"
+    "FRIGATE_MQTT_PASSWORD"
+    "HA_USER"
+    "HA_PASSWORD"
+    "HA_MQTT_USER"
+    "HA_MQTT_PASSWORD"
+    "SMTP_HOST"
+    "SMTP_PORT"
+    "SMTP_TLS"
+    "NPM_CERT_ID"
+    "SIGNUPS_ALLOWED"
+    "STEP_CA_EMAIL"
+    "STEPCA_PASSWORD"
+    "STEPCA_PROVISIONER_NAME"
+    "STEPCA_PROVISIONER_PASSWORD"
+    "STEP_CA_DNS_IP"
+    "STEPCAT_FINGERPRINT"
     "BACKUP_EMAIL"
-    "BACKUP_TARGET_IP"
-    "BACKUP_TARGET_MAC"
-    "BACKUP_TARGET_USER"
-    "BACKUP_TARGET_PATH"
-    "BACKUP_TARGET_OS"
+    "BACKUP_PASSWORD"
     "BACKUP_RETENTION_DAYS"
-    "NEXTCLOUD_DB_PASSWORD"
+    "BACKUP_TARGET_USER"
+    "BACKUP_TARGET_IP"
+    "BACKUP_TARGET_PATH"
+    "BACKUP_TARGET_MAC"
+    "BACKUP_TARGET_OS"
+    "BACKUP_MAX_RETRIES"
+    "BACKUP_RETRY_WAIT"
+    "INCLUDE_FRIGATE_DATA"
+    "INCLUDE_NEXTCLOUD_DATA"
+    "ICON_BLACKLIST_LOCAL"
+    "ICON_DOWNLOAD_TIMEOUT"
+    "NEXTCLOUD_MAIL_FROM_ADDRESS"
+    "NEXTCLOUD_MAIL_DOMAIN"
+    "NEXTCLOUD_MAIL_SMTPHOST"
+    "NEXTCLOUD_MAIL_SMTPPORT"
+    "NEXTCLOUD_MAIL_SMTPSECURE"
+    "NEXTCLOUD_MAIL_SMTPAUTH"
     "NEXTCLOUD_MAIL_SMTPNAME"
+    "NEXTCLOUD_MAIL_SMTPPASSWORD"
+    "NEXTCLOUD_DB_ROOT_PASSWORD"
+    "NEXTCLOUD_DB_PASSWORD"
+    "NEXTCLOUD_DB_USER"
+    "NEXTCLOUD_DB_NAME"
+    "NEXTCLOUD_TRUSTED_DOMAINS"
+    "FORGEJO_USER"
+    "FORGEJO_DB_USER"
+    "FORGEJO_DB_PASSWORD"
+    "FORGEJO_DB_NAME"
+    "CHAT_NPM_CERT_ID"
+    "SIGNAL_CLI_API_PASSWORD"
+    "SIGNAL_API_PORT"
 )
 
 MISSING=0
@@ -65,7 +101,7 @@ if [ "$MISSING" -gt 0 ]; then
     exit 1
 fi
 
-# 3. Path Guard (Sectie 2: Explicitly verify directory existence)
+# 3. Path Guard
 if [ ! -d "${DOCKER_ROOT}" ]; then
     echo "[ERROR] DOCKER_ROOT directory [${DOCKER_ROOT}] does not exist." >&2
     exit 1

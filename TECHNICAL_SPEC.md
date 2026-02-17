@@ -11,11 +11,13 @@
 * **Root Prevention**: Check if EUID is 0; exit if run as root/sudo (protects SSH identity).
 * **Anti-Stacking (Flock)**: Implement kernel-level locking using 'flock' to prevent concurrent execution.
 * **Pre-flight Check**: Every script must call 'verify_env.sh' before main execution.
+* **Consistency Audit**: Use 'check_env_consistency.sh' to ensure parity between .env, .env.example, and validation logic.
 * **Path Validation**: Explicitly verify the existence of the DOCKER_ROOT directory.
 * **Internal Helpers**: Use 'log_message' for timestamped entries and 'fatal_error' for critical failures with email notification.
 
 ## 3. Core Functional Requirements (The "What")
-* **Database**: Export Nextcloud MariaDB dumps using 'mariadb-dump'. Matrix (Conduit) data is handled via file-system persistence.
+* **Database**: Export Nextcloud MariaDB dumps using 'mariadb-dump'. 
+* **Matrix Integration**: Matrix (Synapse) is hosted externally on Intel-based hardware; integration via Reverse Proxy.
 * **Differentiation**: Support dynamic excludes for large folders (Frigate storage, Nextcloud data).
 * **WOL Utility**: Use 'wake_target.sh' with configurable retries and wait times.
 * **Security**: Use OpenSSL AES-256-CBC (pbkdf2) encryption for all off-site backups.
@@ -26,9 +28,10 @@
 ## 4. Detailed Script Logic (The "How")
 
 ### A. backup_stack.sh Flow
-1. EUID Check → 2. Flock lock (/tmp/sovereign_backup.lock) → 3. Source .env & verify_env.sh → 4. DOCKER_ROOT check → 5. DB Export → 6. Tar with Excludes → 7. OpenSSL Encryption → 8. wake_target.sh → 9. SFTP Transfer → 10. Cleanup (>${BACKUP_RETENTION_DAYS}) → 11. Email Report.
+1. EUID Check -> 2. Flock lock (/tmp/sovereign_backup.lock) -> 3. Source .env & verify_env.sh -> 4. DOCKER_ROOT check -> 5. DB Export -> 6. Tar with Excludes -> 7. OpenSSL Encryption -> 8. wake_target.sh -> 9. SFTP Transfer -> 10. Cleanup (>${BACKUP_RETENTION_DAYS}) -> 11. Email Report.
+
 ### B. monitor_backup.sh Flow
-1. EUID Check → 2. Flock lock (/tmp/sovereign_monitor.lock) → 3. Source .env & verify_env.sh → 4. Metrics capture → 5. Find latest .enc → 6. Integrity test (decrypt to /dev/null) → 7. wake_target.sh & OS-Aware Remote SSH check → 8. Health Report.
+1. EUID Check -> 2. Flock lock (/tmp/sovereign_monitor.lock) -> 3. Source .env & verify_env.sh -> 4. Metrics capture -> 5. Find latest .enc -> 6. Integrity test (decrypt to /dev/null) -> 7. wake_target.sh & OS-Aware Remote SSH check -> 8. Health Report.
 
 ## 5. Configuration & Compliance
 * **YAML Security**: Always use quotes for passwords in YAML files.
@@ -37,8 +40,6 @@
 * **Linter**: Scripts must pass 'yamllint' (without hyphens).
 * **Environment**: All sensitive data and paths must be sourced from a .env file.
 * **Logging**: Output redirected to ${DOCKER_ROOT}/backups/cron.log only AFTER lock is acquired.
-
----
 
 ---
 

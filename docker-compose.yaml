@@ -102,54 +102,7 @@ services:
       - pi-services
     extra_hosts:
       - "${DOMAIN}:${INTERNAL_HOST_IP}"
-      - "${DNS_SERVER_NAME}:${DNS_SERVER_IP}"
-
-  conduit:
-    image: matrixconduit/matrix-conduit:latest
-    container_name: conduit
-    restart: unless-stopped
-    ports:
-      - "${CONDUIT_PORT}:6167"
-    environment:
-      CONDUIT_SERVER_NAME: "${DOMAIN}"
-      CONDUIT_DATABASE_PATH: "/var/lib/matrix-conduit"
-      CONDUIT_ALLOW_REGISTRATION: "false"
-      CONDUIT_ALLOW_FEDERATION: "true"
-      CONDUIT_MAX_REQUEST_SIZE: "20000000"
-      CONDUIT_TRUSTED_SERVERS: '["matrix.org"]'
-      CONDUIT_DATABASE_BACKEND: "rocksdb"
-      CONDUIT_ADDRESS: "0.0.0.0"
-      CONDUIT_PORT: "6167"
-      CONDUIT_CONFIG: ""
-      CONDUIT_ADMIN_PASSWORD: "${CONDUIT_ADMIN_PASSWORD}"
-    volumes:
-      - "${DOCKER_ROOT}/conduit:/var/lib/matrix-conduit"
-    networks:
-      - pi-services
-
-
-  conduit-family:
-    image: matrixconduit/matrix-conduit:latest
-    container_name: conduit-family
-    restart: unless-stopped
-    ports:
-      - "${SECOND_CONDUIT_PORT}:6167"
-    environment:
-      CONDUIT_SERVER_NAME: "${SECOND_DOMAIN}"
-      CONDUIT_DATABASE_PATH: "/var/lib/matrix-conduit"
-      CONDUIT_ALLOW_REGISTRATION: "false"
-      CONDUIT_ALLOW_FEDERATION: "true"
-      CONDUIT_MAX_REQUEST_SIZE: "20000000"
-      CONDUIT_TRUSTED_SERVERS: '["matrix.org"]'
-      CONDUIT_DATABASE_BACKEND: "rocksdb"
-      CONDUIT_ADDRESS: "0.0.0.0"
-      CONDUIT_PORT: "6167"
-      CONDUIT_CONFIG: ""
-      CONDUIT_ADMIN_PASSWORD: "${CONDUIT_FAMILY_ADMIN_PASSWORD}"
-    volumes:
-      - "${DOCKER_ROOT}/conduit-family:/var/lib/matrix-conduit"
-    networks:
-      - pi-services
+      - "${EXTERNAL_DNS_NAME}:${EXTERNAL_DNS_IP}"
 
   vaultwarden:
     container_name: vaultwarden
@@ -173,27 +126,12 @@ services:
     ports:
       - "80:80/tcp"
       - "443:443/tcp"
-      #            - "5222:5222/tcp" was voor prosody
       - "8181:81/tcp"
-    #            - "5269:5269/tcp" was voor prosody
     volumes:
       - "${DOCKER_ROOT}/npm/data:/data"
       - "${DOCKER_ROOT}/npm/letsencrypt:/etc/letsencrypt"
-    #            - "${DOCKER_ROOT}/prosody/www:/data/prosody_www:ro"
     networks:
       - pi-services
-
-  #    watchtower:
-  #        container_name: watchtower
-  #        image: containrrr/watchtower
-  #        restart: unless-stopped
-  #        volumes:
-  #            - "/var/run/docker.sock:/var/run/docker.sock"
-  #        environment:
-  #            WATCHTOWER_POLL_INTERVAL: "86400"
-  #            WATCHTOWER_CLEANUP: "true"
-  #        networks:
-  #            - pi-services
 
   step-ca:
     image: "smallstep/step-ca"
@@ -214,31 +152,31 @@ services:
       DOCKER_STEPCA_INIT_PROVISIONER_PASSWORD: "${STEPCA_PROVISIONER_PASSWORD}"
     restart: "unless-stopped"
 
-  #    fail2ban:
-  #        image: crazymax/fail2ban:latest
-  #        container_name: fail2ban
-  #        restart: unless-stopped
-  #        network_mode: host
-  #        cap_add:
-  #            - NET_ADMIN
-  #            - NET_RAW
-  #        volumes:
-  #            - "${DOCKER_ROOT}/fail2ban/data:/data"
-  #            - "${DOCKER_ROOT}/npm/data/logs:/var/log/npm:ro"
-  #            - "${DOCKER_ROOT}/forgejo/data/gitea/log:/var/log/forgejo:ro"
-  #        environment:
-  #            TZ: "${TZ}"
-  #            F2B_LOG_TARGET: "STDOUT"
-  #            F2B_LOG_LEVEL: "INFO"
-  #            F2B_DB_PURGE_AGE: "1d"
-  #            SS_TPL_DESTMAIL: "${BACKUP_EMAIL}"
-  #            SS_TPL_SENDERNAME: "Sovereign-Security"
-  #            SS_TPL_SENDERMAIL: "${BACKUP_EMAIL}"
-  #            SS_TPL_SMTPHOST: "${SMTP_HOST}"
-  #            SS_TPL_SMTPPORT: "${SMTP_PORT}"
-  #            SS_TPL_SMTPUSER: "${BACKUP_EMAIL}"
-  #            SS_TPL_SMTPPASS: "${BACKUP_PASSWORD}"
-  #            SS_TPL_SMTPTLS: "${SMTP_TLS}"
+  fail2ban:
+    image: crazymax/fail2ban:latest
+    container_name: fail2ban
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - "${DOCKER_ROOT}/fail2ban/data:/data"
+      - "${DOCKER_ROOT}/npm/data/logs:/var/log/npm:ro"
+      - "${DOCKER_ROOT}/forgejo/data/gitea/log:/var/log/forgejo:ro"
+    environment:
+      TZ: "${TZ}"
+      F2B_LOG_TARGET: "STDOUT"
+      F2B_LOG_LEVEL: "INFO"
+      F2B_DB_PURGE_AGE: "1d"
+      SS_TPL_DESTMAIL: "${BACKUP_EMAIL}"
+      SS_TPL_SENDERNAME: "Sovereign-Security"
+      SS_TPL_SENDERMAIL: "${BACKUP_EMAIL}"
+      SS_TPL_SMTPHOST: "${SMTP_HOST}"
+      SS_TPL_SMTPPORT: "${SMTP_PORT}"
+      SS_TPL_SMTPUSER: "${BACKUP_EMAIL}"
+      SS_TPL_SMTPPASS: "${BACKUP_PASSWORD}"
+      SS_TPL_SMTPTLS: "${SMTP_TLS}"
 
   glances:
     image: nicolargo/glances:latest
@@ -255,7 +193,6 @@ services:
     image: mariadb:10.11
     container_name: nextcloud-db
     restart: always
-    # English: Added --log-bin to resolve the warning and enable binary logging for ROW format
     command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
     labels:
       - "com.centurylinklabs.watchtower.enable=false"
@@ -295,7 +232,6 @@ services:
     volumes:
       - ./nextcloud/data:/var/www/html
     environment:
-      # English: Switched to map notation to avoid DNS resolution issues with quotes in list-style strings
       MYSQL_PASSWORD: "${NEXTCLOUD_DB_PASSWORD}"
       MYSQL_DATABASE: "${NEXTCLOUD_DB_NAME}"
       MYSQL_USER: "${NEXTCLOUD_DB_USER}"
@@ -382,8 +318,6 @@ services:
     volumes:
       - ./signal-data:/home/.local/share/signal-cli
     restart: unless-stopped
-
-
 
 networks:
   pi-services:

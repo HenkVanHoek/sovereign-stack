@@ -1,154 +1,71 @@
-Mijn excuses, het systeem probeert inderdaad vaak automatisch de editor (Canvas) te openen bij langere teksten. Ik zal de volledige README.md hieronder als platte tekst weergeven, waarbij elke regel begint met exact 4 spaties, zoals je hebt gevraagd. Zo kun je het zonder vertraging kopiëren naar PyCharm.
-
-# sovereign-stack v4.0: The Sovereign Blueprint
+# sovereign-stack: The Sovereign Blueprint
 
 The **sovereign-stack** is a project dedicated to regaining digital autonomy by hosting essential services on a local Raspberry Pi 5. It is a robust, privacy-first infrastructure blueprint designed for those who believe that data sovereignty is a fundamental right.
 
-This stack is designed to be a **complete replacement for proprietary ecosystems**. By deploying this blueprint, you can replace centralized communication tools like **WhatsApp** and **Signal** with your own **Matrix (Synapse)** infrastructure (hosted externally), and transition away from **Microsoft Office/365** or **Google Workspace**. You can by utilizing the full power of **Nextcloud** with **Collabora Online**.
+This stack is a **complete replacement for proprietary ecosystems**. By deploying this blueprint, you can replace centralized communication tools with your own **Matrix (Synapse)** infrastructure (hosted externally), and transition away from **Microsoft 365** or **Google Workspace** by utilizing **Nextcloud** with **Collabora Online**.
 
-Although it is tested and running on a Raspberry Pi 5 with a 1TB NVMe SSD, it can be easily installed on other hardware using Debian Linux with small adaptations, as Raspberry Pi OS is a Debian variant.
+> **Current Version:** v4.2.0 (See [version.py](./version.py) for the Single Source of Truth).
 
 ---
 
 ## 1. Core Vision & Philosophy
-In an era of centralized "cloud" monopolies and constant data harvesting, this project provides a path to technical independence.
-
-* **Autonomy:** Reducing dependency on centralized infrastructure and foreign "Big Tech" clouds.
+* **Autonomy:** Reducing dependency on centralized "Big Tech" clouds.
 * **Privacy:** Keeping community and personal data (GDPR) within your own physical walls.
-* **Agency:** Utilizing hardware (like CCTV/NVR) without allowing it to "phone home" to foreign servers.
-* **Resilience:** Services remain functional and trusted even if external certificate authorities or providers fail.
+* **Discovery:** Automated infrastructure mapping to ensure your asset inventory is always accurate.
 
 ---
 
-## 2. The Sovereign Service Suite (18+ Services)
-The stack is a curated collection of industry-standard services, optimized to run harmoniously on the Raspberry Pi 5.
+## 2. The Sovereign Service Suite
+The stack is a curated collection of services, optimized to run harmoniously on the Raspberry Pi 5.
 
-### Core Infrastructure & Cloud Office
-| Service                                                     | Role            | Purpose                                                                                |
-|:------------------------------------------------------------|:----------------|:---------------------------------------------------------------------------------------|
-| **[Nextcloud](https://nextcloud.com/)**                     | Cloud Hub       | **Office/365 Replacement:** File sync, contacts, calendar, and collaborative office.   |
-| **[Collabora Online](https://www.collaboraoffice.com/)**    | Office Suite    | Real-time document editing (Word, Excel, PowerPoint alternatives) inside Nextcloud.    |
-| **[Notify Push](https://github.com/nextcloud/notify_push)** | HPB             | High Performance Backend for real-time Nextcloud notifications and file updates.       |
-| **[Forgejo](https://forgejo.org/)**                         | Git Service     | **GitHub Replacement:** Self-hosted software forge for local code and version control. |
-| **[MariaDB](https://mariadb.org/)**                         | SQL Database    | High-performance backend for Nextcloud and other services.                             |
-| **[Redis](https://redis.io/)**                              | In-memory Cache | Acceleration for Nextcloud file locking and session handling.                          |
-| **[Nginx Proxy Manager](https://nginxproxymanager.com/)**   | Reverse Proxy   | Manages SSL, CORS headers for Matrix, and secure traffic routing.                      |
+### Core Infrastructure & Asset Management
+| Service | Role | Purpose |
+| :--- | :--- | :--- |
+| **[Nextcloud](https://nextcloud.com/)** | Cloud Hub | File sync, contacts, calendar, and collaborative office. |
+| **[NetBox](https://netboxlabs.com/)** | IPAM & DCIM | **Single Source of Truth:** Manages IP addresses, VMs, and device racking. |
+| **[Infra Scanner]** | Discovery | **New in v4.2.0:** Automated SSH-based discovery of Docker containers, VMs, and OctoPrint. |
+| **[Nginx Proxy Manager]** | Reverse Proxy | Manages SSL and secure traffic routing for internal/external nodes. |
 
-### Communication & Privacy
-| Service                                                               | Role             | Purpose                                                         |
-|:----------------------------------------------------------------------|:-----------------|:----------------------------------------------------------------|
-| **[AdGuard Home](https://adguard.com/en/adguard-home/overview.html)** | DNS & Ad-block   | Network-wide ad-blocking and privacy-focused DNS (DoH/DoT).     |
-| **[Step-CA](https://smallstep.com/certificates/)**                    | Internal PKI     | Your own Certificate Authority for internal TLS/SSL management. |
-| **[Vaultwarden](https://github.com/dani-garcia/vaultwarden)**         | Password Manager | Bitwarden-compatible server for secure credential storage.      |
-| **[Fail2Ban](https://www.fail2ban.org/)**                             | Active Defense   | Automated intrusion prevention; blocks malicious IP addresses.  |
-
-### Home Automation & Physical Security
-| Service                                              | Role            | Purpose                                                                                          |
-|:-----------------------------------------------------|:----------------|:-------------------------------------------------------------------------------------------------|
-| **[Home Assistant](https://www.home-assistant.io/)** | Automation Core | Local control of IoT devices, lights, and energy management without cloud dependency.            |
-| **[Frigate](https://frigate.video/)**                | NVR / AI        | Real-time local object detection (CCTV) utilizing the Coral TPU or CPU for person/car detection. |
-| **[Mosquitto](https://mosquitto.org/)**              | MQTT Broker     | Lightweight message bus for communication between Home Assistant, Frigate, and IoT devices.      |
-
-### System & Maintenance
-| Service                                              | Role           | Purpose                                                                      |
-|:-----------------------------------------------------|:---------------|:-----------------------------------------------------------------------------|
-| **[Portainer](https://www.portainer.io/)**           | Container Mgmt | GUI for managing Docker containers, images, and networks.                    |
-| **[Watchtower](https://containrrr.dev/watchtower/)** | Updates        | Automates the process of keeping Docker base images up-to-date.              |
-| **[MSMTP](https://marlam.de/msmtp/)**                | Mail Relay     | Lightweight SMTP client for sending system alerts and backup notifications.  |
-| **[Coturn](https://github.com/coturn/coturn)**       | TURN Server    | (Optional) Traffic relay for establishing Matrix/Nextcloud calls behind NAT. |
+### Specialized & Home Services
+| Service | Role | Purpose |
+| :--- | :--- | :--- |
+| **[Home Assistant]** | Automation Core | Local control of IoT devices and energy management. |
+| **[Frigate]** | NVR / AI | Real-time local object detection for CCTV. |
+| **[OctoPrint]** | 3D Printing | Native discovery support for 3D printer fleet management. |
+| **[AdGuard Home]** | DNS & Ad-block | Network-wide privacy-focused DNS (DoH/DoT). |
 
 ---
 
-## 3. Project Structure
+## 3. Project Structure (v4.2.0 Additions)
 
-| File / Directory                        | Purpose                                                                             |
-|:----------------------------------------|:------------------------------------------------------------------------------------|
-| `.editorconfig`                         | Ensures consistent coding styles across different editors and IDEs (PyCharm).       |
-| `.env`                                  | **NOT INCLUDED.** Copy from `.env.example` and populate with your local secrets.    |
-| `.env.example`                          | Template for environment variables and secrets (Anonymized).                        |
-| `.gitignore`                            | Defines which files and directories should be ignored by Git (e.g., .env).          |
-| `adr/`                                  | **Architecture Decision Records:** Documentation of key technical decisions.        |
-| `backup_stack.sh`                       | **Master Backup:** Handles DB dump, AES encryption, and SFTP push.                  |
-| `CHANGELOG.md`                          | Chronological log of all notable changes and version updates.                       |
-| `check_env_consistency.sh`              | **Audit Tool:** Ensures parity between .env, .env.example, and validation logic.    |
-| `Checklist.md`                          | **Pre-Flight:** Final verification steps before live deployment.                    |
-| `clean_stack.sh`                        | Maintenance script to prune unused Docker images, containers, and networks.         |
-| `create_users.sh`                       | Helper script to initialize system users and group permissions.                     |
-| `docker-compose.yaml`                   | **Master Orchestration:** Defines all 18+ services and networks.                    |
-| `First-Run Guide.md`                    | Step-by-step instructions for initial setup after installation.                     |
-| `fix-nextcloud-perms.sh`                | Surgical permission fix for Nextcloud data and preview directories.                 |
-| `gen_cert.sh`                           | Utility to generate or renew internal SSL certificates using Step-CA.               |
-| `INSTALL.md`                            | Comprehensive technical guide for manual or specialized installations.              |
-| `INSTALL.sh`                            | **Master Setup Wizard:** Installs dependencies and configures the environment.      |
-| `LICENSE`                               | Project license (GNU GPL-3.0).                                                      |
-| `MAINTENANCE.md`                        | Operational guide for updates, scaling, and routine service management.             |
-| `monitor_backup.sh`                     | **Dead Man's Switch:** Integrity check and cross-platform verification.             |
-| `RESTORE.md`                            | Detailed manual restoration procedure for disaster recovery scenarios.              |
-| `restore_files_from_a_given_backup.cmd` | Windows helper script to extract specific files from backups.                       |
-| `restore_stack.sh`                      | **Recovery Engine:** Automates the decryption and injection of stack backups.       |
-| `TECHNICAL_SPEC.md`                     | **Source of Truth:** Defines all technical requirements and script flows.           |
-| `test_remote_connection.sh`             | Debug utility to verify SSH and SFTP connectivity to backup targets.                |
-| `TROUBLESHOOTING.md`                    | Central database of common issues, error codes, and their resolutions.              |
-| `verify_env.sh`                         | **The Gatekeeper:** Validates all mandatory environment variables before execution. |
-| `wake_target.sh`                        | **WOL Utility:** Modular script to wake remote targets via Magic Packets.           |
+| File / Directory | Purpose |
+| :--- | :--- |
+| `version.py` | **Central Versioning:** The primary version declaration for the entire stack. |
+| `infra_scanner.py` | **Discovery Engine:** SSH-based scanner for infrastructure inventory. |
+| `Dockerfile.infra_scanner` | **High-Speed Build:** Uses `uv` for near-instant Python dependency management. |
+| `inventory.json.example` | Template for your host metadata and multiline comments. |
+| `credentials.json.example` | Template for SSH authentication secrets (Separated from metadata). |
+| `check_env_consistency.sh` | **Audit Tool:** Ensures parity between .env, .env.example, and validation logic. |
+| `seed_netbox.py` | Utility to initialize NetBox with default Sovereign Stack types. |
 
 ---
 
-## 4. Operational Standards & Permissions
-To maintain stability across updates and container restarts, strict adherence to these standards is required:
+## 4. Operational Standards
+To maintain stability across the 40+ devices in the Sovereign ecosystem, we adhere to strict standards:
 
-1.  **YAML Formatting:**
-    * All `docker-compose.yaml` files must use **2 spaces** for indentation.
-    * All passwords must be enclosed in double quotes (`"password"`).
-
-2.  **Surgical Permissions (Post-Maintenance):**
-    * Avoid using broad `chown -R` commands on the project root.
-    * If file permissions are reset during maintenance, restore service-specific ownership immediately:
-        * **Nextcloud:** `sudo chown -R 33:33 ./nextcloud/data`
-        * **MariaDB:** `sudo chown -R 999:999 ./nextcloud/db`
+1.  **Versioning:** Never hardcode version numbers in script headers; always import from `version.py`.
+2.  **YAML Formatting:** Use **2 spaces** for indentation and **double quotes** for all passwords.
+3.  **Python Linting:** Code must follow `.editorconfig` rules, including an **88-character** maximum line length.
+4.  **Separation of Concerns:** Keep host metadata in `inventory.json` and secrets in `credentials.json`.
 
 ---
 
 ## 5. Safety Guards (Sovereign Security)
-Every script in this stack is protected by a multi-layer security shell:
-1.  **Root Prevention:** Blocks execution as root/sudo to protect SSH identities.
-2.  **Anti-Stacking (Flock):** Kernel-level locking prevents concurrent process pile-ups.
-3.  **Environment Guard:** `verify_env.sh` ensures all required secrets are present.
-4.  **Path Validation:** Explicit checks for `DOCKER_ROOT` existence before any I/O operation.
+* **The Gatekeeper:** `verify_env.sh` validates all 56 mandatory environment variables before any service starts.
+* **Active Defense:** **Fail2ban** is reactivated to protect the stack against brute-force attacks.
+* **Environment Guard:** `check_env_consistency.sh` prevents "variable drift" between example files and live settings.
 
 ---
 
-## 6. Maintenance & Backup Pipeline
-Backups are automated and secured with industry-standard encryption:
-
-* **Database:** MariaDB is exported via `mariadb-dump` to a secure SQL file.
-* **Granular Excludes:** Dynamically excludes Frigate videos or Nextcloud data via `.env`.
-* **Security:** Archives are secured with **AES-256-CBC** (PBKDF2) using OpenSSL.
-* **Dynamic Retention:** Automatically purges local backups older than `${BACKUP_RETENTION_DAYS}`.
-* **SFTP Push:** Transfers archives to remote targets. Supports Windows paths (`/H:/Backup`).
-
----
-
-## 7. Monitoring (Dead Man's Switch)
-The `monitor_backup.sh` script performs a multi-layer health check every morning:
-
-* **Integrity Test:** Decrypts the latest archive in-memory to verify stream and password.
-* **Cross-Platform Check:** Employs OS-aware logic to verify file presence on the target.
-* **Windows Logic:** Automatically strips leading slashes for Windows CMD (`if exist`) compatibility.
-* **WOL Integration:** Uses `wake_target.sh` to ensure the remote target is awake before checking.
-* **Email Alerting:** Dispatches high-priority (X-Priority: 1) status reports via `msmtp`.
-
----
-
-## 8. Disaster Recovery
-The recovery process follows the **Selective Injection** method:
-1. **Decrypt:** Use OpenSSL to decrypt the archive.
-2. **Inject SQL:** Re-import the SQL dump into the MariaDB container.
-3. **Data Sync:** Restore user data and fix permissions (`chown 33:33`).
-4. Refer to **[RESTORE.md](./RESTORE.md)** for the full procedure.
-
----
-
----
-
-*This documentation is part of the **Sovereign Stack** project. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY. Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*
+*This documentation is part of the **Sovereign Stack** project.
+Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*

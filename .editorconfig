@@ -1,17 +1,21 @@
-# .editorconfig - Enforce Unix line endings for the Sovereign Stack
-
-root = true
-
+# Unix-style newlines with a newline ending every file
 [*]
 end_of_line = lf
 insert_final_newline = true
+trim_trailing_whitespace = true
 charset = utf-8
 indent_style = space
 indent_size = 4
 
+# YAML files strictly 2 spaces (Sovereign Stack standard)
 [*.{yml,yaml}]
 indent_size = 2
 
-[.env*]
-indent_style = space
+# Python files
+[*.py]
+indent_size = 4
+max_line_length = 88
+
+# Bash scripts
+[*.sh]
 indent_size = 4

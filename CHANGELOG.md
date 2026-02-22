@@ -1,10 +1,43 @@
 # Changelog
 
 All notable changes to the Sovereign Stack project will be documented in this file.
-
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0] - 2026-02-22 "The Discovery Update"
+
+### Added
+- **Infrastructure Discovery**: Added `infra_scanner.py` for automated SSH-based inventory of Docker containers and VirtualBox VMs.
+- **Service Intelligence**: Implemented detection for **OctoPrint** 3D-printer interfaces.
+- **Asset Management**: Full integration of **NetBox** with supporting scripts (`seed_netbox.py`, `import_inventory.py`, `check_netbox_api.py`).
+- **Project Standards**: Introduced `version.py` for centralized versioning and `.editorconfig` for Python linting rules.
+- **Tooling**: Added `run_task.sh` and `bulk_rename_from_nmap.py` for administrative efficiency.
+
+### Changed
+- **Architecture Refactor**: Separated metadata from secrets by splitting `inventory.json` and `credentials.json`.
+- **Matrix Strategy**: Migrated from local Conduit to external Synapse hosting via Reverse Proxy.
+- **Build System**: Switched to **uv** in `Dockerfile.infra_scanner` for near-instant dependency installation.
+- **Environment Audit**: Expanded `verify_env.sh` to validate 56 variables; added `check_env_consistency.sh`.
+- **Code Quality**: Refactored Python scripts to resolve scope-shadowing and linter warnings in PyCharm.
+
+### Fixed
+- Fixed regression where network variables were lost during the removal of Conduit.
+- Optimized `backup_stack.sh` with full headers and linter improvements.
+
+### Removed
+- **Matrix**: Removed local Conduit (Matrix) services and associated data persistence layers.
+
+---
+## [4.1.0] - 2026-02-19 "Infrastructure Expansion"
+
+### Added
+- **Infrastructure Management**: Integrated **Netbox** (IPAM & DCIM) to manage IP addresses, virtual machines, and device racking.
+- **Database**: Added a dedicated **PostgreSQL 15** container specifically for the Netbox backend.
+- **Caching**: Added a dedicated **Redis 7** container for Netbox task queuing and caching.
+
+### Changed
+- **Documentation**: Updated `README.md`, `First-Run Guide.md`, `Checklist.md`, and `INSTALL.md` to reflect the new Netbox requirements and initialization commands.
+-
 ## [4.0.0] - 2026-02-15 "The Sovereign Awakening"
 
 ### Added
@@ -68,12 +101,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Note on Versioning History
 
-The Sovereign Stack began as a personal hobby and laboratory project to achieve digital autonomy. Versions prior to **v3.5.0** were part of an internal, rapid-development phase and are not individually documented here. 
+The Sovereign Stack began as a personal hobby and laboratory project to achieve digital autonomy. Versions prior to **v3.5.0** were part of an internal, rapid-development phase and are not individually documented here.
 
 Starting with **v3.6.1**, the project has transitioned to a structured release cycle for public use on GitHub, with all future changes being meticulously tracked in this log.
 
 ---
 
-*This documentation is part of the **Sovereign Stack** project. 
+*This documentation is part of the **Sovereign Stack** project.
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY.
 Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*

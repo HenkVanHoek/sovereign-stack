@@ -1,31 +1,38 @@
-# Deployment Verification Checklist
+# Deployment Verification Checklist (v4.2.0)
 
-Before going live with the full stack, perform these checks to ensure autonomy and resilience.
+Voer deze controles uit voordat de stack live gaat om autonomie en veerkracht te garanderen.
 
 ## 1. Environment & Connectivity Checks
-- [ ] **Secrets:** Verify `.env` exists and contains no `<REPLACE_WITH...>` placeholders.
-- [ ] **Permissions:** Run `chmod +x ./*.sh` and verify scripts are executable.
-- [ ] **Remote Link:** Run `./test_remote_connection.sh` to confirm WoL and SSH access.
-- [ ] **Internal Trust:** Run `./gen_cert.sh` for at least one subdomain to verify Step-CA is operational.
+- [ ] **Versioning**: Controleer of `version.py` op "4.2.0" staat.
+- [ ] **Secrets**: Controleer of `.env` bestaat en geen `<REPLACE_WITH...>` placeholders bevat.
+- [ ] **Consistency**: Voer `./check_env_consistency.sh` uit om de 56 variabelen te valideren.
+- [ ] **Permissions**: Voer `chmod +x ./*.sh` uit en controleer of alle scripts uitvoerbaar zijn.
+- [ ] **Remote Link**: Voer `./test_remote_connection.sh` uit (WoL en SSH-toegang naar targets).
+- [ ] **Internal Trust**: Genereer minimaal één certificaat via `./gen_cert.sh` om Step-CA te testen.
 
-## 2. Service Orchestration
-- [ ] **Stack Boot:** Run `docker compose up -d` and check for any "Exit 1" containers.
-- [ ] **Log Audit:** Check `docker logs fail2ban` to ensure security jails are active.
-- [ ] **Nextcloud Data:** Run `./fix-nextcloud-perms.sh` to prevent access errors.
+## 2. Infrastructure Discovery (v4.2.0)
+- [ ] **Inventory Split**: Controleer of `inventory.json` (metadata) en `credentials.json` (secrets) aanwezig zijn.
+- [ ] **NetBox Init**: Voer `seed_netbox.py` uit om de standaard Sovereign Stack types aan te maken.
+- [ ] **Scanner Build**: Controleer of de `infra-scanner` container succesvol bouwt met `uv`.
+- [ ] **First Scan**: Voer een handmatige scan uit en controleer of Docker containers en VM's in NetBox verschijnen.
+- [ ] **OctoPrint**: Controleer of actieve OctoPrint instances worden gedetecteerd door de scanner.
 
-## 3. Communication & Alerting
-- [ ] **SMTP Pipe:** Send a test email via `msmtp` to verify your Freedom.nl relay.
-- [ ] **Dashboard:** Verify all 19+ services appear correctly in the Homarr dashboard.
+## 3. Service Orchestration
+- [ ] **Netbox Permissions**: Controleer of de media/reports mappen eigendom zijn van UID 1000.
+- [ ] **Stack Boot**: Voer `docker compose up -d` uit en check op "Exit 1" containers.
+- [ ] **Log Audit**: Controleer `docker logs fail2ban` om te zien of de jails actief zijn.
+- [ ] **Nextcloud Data**: Voer `./fix-nextcloud-perms.sh` uit om toegangsrechten te herstellen.
 
-## 4. Disaster Recovery Preparation
-- [ ] **Backup Test:** Trigger a manual backup: `./backup_stack.sh`.
-- [ ] **Integrity:** Verify the local archive with `openssl enc -d ... | tar -tzf -`.
-- [ ] **Cron Verification:** Run `crontab -l` to ensure the 03:00 and 04:30 slots are filled.
+## 4. Communication & Alerting
+- [ ] **SMTP Pipe**: Test de mailverbinding via `msmtp` naar je Freedom.nl relay.
+- [ ] **Dashboard**: Controleer of alle services (inclusief NetBox en de Scanner status) correct in Homarr staan.
+- [ ] **Monitoring**: Controleer of de `monitor_backup.sh` correct in de crontab staat.
+
+## 5. Disaster Recovery Preparation
+- [ ] **Backup Test**: Voer een handmatige backup uit: `./backup_stack.sh`.
+- [ ] **Integrity**: Valideer het lokale archief: `openssl enc -d ... | tar -tzf -`.
+- [ ] **Cron Slots**: Controleer via `crontab -l` of de 03:00 en 04:30 slots gevuld zijn.
 
 ---
-*Status: Ready for Deployment*
----
 
----
-
-*This documentation is part of the **Sovereign Stack** project. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY. Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*
+*Dit document is onderdeel van het Sovereign Stack project.*

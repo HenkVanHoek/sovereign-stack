@@ -1,4 +1,18 @@
 services:
+
+  infra-scanner:
+    build:
+      context: .
+      dockerfile: Dockerfile.infra_scanner
+    container_name: infra-scanner
+    restart: unless-stopped
+    volumes:
+      - ./inventory.json:/app/inventory.json:ro
+      - ./credentials.json:/app/credentials.json:ro
+      - ./.env:/app/.env:ro
+    depends_on:
+      - netbox
+
   portainer:
     container_name: portainer
     image: portainer/portainer-ce:latest
@@ -193,14 +207,17 @@ services:
     image: mariadb:10.11
     container_name: nextcloud-db
     restart: always
-    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    command: >
+      --transaction-isolation=READ-COMMITTED
+      --log-bin=binlog
+      --binlog-format=ROW
     labels:
       - "com.centurylinklabs.watchtower.enable=false"
     env_file: .env
     networks:
       - nextcloud-internal
     volumes:
-      - ./nextcloud/db:/var/lib/mysql
+      - "${DOCKER_ROOT}/nextcloud/db:/var/lib/mysql"
     environment:
       MYSQL_ROOT_PASSWORD: "${NEXTCLOUD_DB_ROOT_PASSWORD}"
       MYSQL_PASSWORD: "${NEXTCLOUD_DB_PASSWORD}"
@@ -230,7 +247,7 @@ services:
       - pi-services
       - nextcloud-internal
     volumes:
-      - ./nextcloud/data:/var/www/html
+      - "${DOCKER_ROOT}/nextcloud/data:/var/www/html"
     environment:
       MYSQL_PASSWORD: "${NEXTCLOUD_DB_PASSWORD}"
       MYSQL_DATABASE: "${NEXTCLOUD_DB_NAME}"
@@ -248,14 +265,61 @@ services:
       SMTP_NAME: "${NEXTCLOUD_MAIL_SMTPNAME}"
       SMTP_PASSWORD: "${NEXTCLOUD_MAIL_SMTPPASSWORD}"
 
+  # --- Communication Services ---
+  coturn:
+    image: coturn/coturn:latest
+    container_name: coturn
+    restart: unless-stopped
+    networks:
+      - pi-services
+    ports:
+      - "3478:3478/tcp"
+      - "3478:3478/udp"
+    environment:
+      - TURN_SECRET=${COTUR_SECRET}
+      - TURN_SERVER_NAME=turn.${DOMAIN}
+      - TURN_REALM=turn.${DOMAIN}
+    command:
+      - --log-file=stdout
+      - --listening-port=3478
+      - --min-port=49152
+      - --max-port=65535
+      - --user-quota=100
+      - --total-quota=1000
+      - --stale-nonce
+      - --no-stdout-log
+
+  # --- Nextcloud High Performance Backend ---
+  notify-push:
+    image: nextcloud:stable
+    container_name: notify-push
+    restart: unless-stopped
+    depends_on:
+      - nextcloud-app
+      - nextcloud-db
+      - nextcloud-redis
+    environment:
+      PORT: "7867"
+      NEXTCLOUD_URL: "https://nextcloud.${DOMAIN}"
+    volumes:
+      - "${DOCKER_ROOT}/nextcloud/data:/var/www/html"
+    #    entrypoint: ["tail", "-f", "/dev/null"]
+    entrypoint: [ "/var/www/html/custom_apps/notify_push/bin/aarch64/notify_push" ]
+    command: [ "/var/www/html/config/config.php" ]
+    #    entrypoint: /bin/sh
+    #    command: -c "/var/www/html/custom_apps/notify_push/bin/aarch64/notify_push /var/www/html/config/config.php"
+    networks:
+      - pi-services
+      - nextcloud-internal
+
   homarr:
     container_name: homarr
     image: ghcr.io/ajnart/homarr:latest
     restart: unless-stopped
     volumes:
-      - ./homarr/configs:/app/data/configs
-      - ./homarr/icons:/app/public/icons
-      - /var/run/docker.sock:/var/run/docker.sock
+      - "${DOCKER_ROOT}/homarr/configs:/app/data/configs"
+      - "${DOCKER_ROOT}/homarr/icons:/app/public/icons"
+      - "/var/run/docker.sock:/var/run/docker.sock"
     ports:
       - "7575:7575"
     environment:
@@ -312,12 +376,136 @@ services:
     container_name: signal-api
     environment:
       - MODE=json-rpc
-      - SIGNAL_CLI_API_PASSWORD=${SIGNAL_CLI_API_PASSWORD}
+      - SIGNAL_CLI_API_PASSWORD="${SIGNAL_CLI_API_PASSWORD}"
     ports:
       - "8090:8080"
     volumes:
-      - ./signal-data:/home/.local/share/signal-cli
+      - "${DOCKER_ROOT}/signal-data:/home/.local/share/signal-cli"
     restart: unless-stopped
+
+  # --- Lightweight Matrix Alternative (Optional) ---
+  # Uncomment this block if you want to run a lightweight Matrix server (Conduit)
+  # directly on the Raspberry Pi for small, private groups.
+  # Note: For large communities (1000+ users), an external Synapse node is recommended.
+  #
+  #  matrix:
+  #    image: matrixconduit/matrix-conduit:latest
+  #    container_name: matrix
+  #    restart: unless-stopped
+  #    environment:
+  #      CONDUIT_SERVER_NAME: "matrix.${DOMAIN}"
+  #      CONDUIT_DATABASE_BACKEND: "rocksdb"
+  #      CONDUIT_ALLOW_REGISTRATION: "false"
+  #    volumes:
+  #      - "${DOCKER_ROOT}/matrix:/var/lib/matrix-conduit"
+  #    ports:
+  #      - "6167:6167"
+  #    networks:
+  #      - pi-services
+
+  netbox-db:
+    container_name: netbox-db
+    image: postgres:15-alpine
+    # PostgreSQL backend for Netbox infrastructure management
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_DB: "${NETBOX_DB_NAME}"
+      POSTGRES_USER: "${NETBOX_DB_USER}"
+      POSTGRES_PASSWORD: "${NETBOX_DB_PASSWORD}"
+    volumes:
+      - "${DOCKER_ROOT}/netbox/db:/var/lib/postgresql/data"
+    networks:
+      - pi-services
+
+  netbox-redis:
+    container_name: netbox-redis
+    image: redis:7-alpine
+    # Redis instance for Netbox caching and queuing
+    restart: unless-stopped
+    networks:
+      - pi-services
+
+  netbox:
+    container_name: netbox
+    image: netboxcommunity/netbox:latest
+    restart: unless-stopped
+    depends_on:
+      - netbox-db
+      - netbox-redis
+    volumes:
+      - "${DOCKER_ROOT}/netbox/media:/opt/netbox/netbox/media"
+      - "${DOCKER_ROOT}/netbox/reports:/opt/netbox/netbox/reports"
+      - "${DOCKER_ROOT}/netbox/scripts:/opt/netbox/netbox/scripts"
+    ports:
+      - "8085:8080"
+    environment:
+      API_TOKEN_PEPPERS: "${NETBOX_API_TOKEN_PEPPERS}"
+      SECRET_KEY: "${NETBOX_SECRET_KEY}"
+      DB_NAME: "${NETBOX_DB_NAME}"
+      DB_USER: "${NETBOX_DB_USER}"
+      DB_PASSWORD: "${NETBOX_DB_PASSWORD}"
+      DB_HOST: "netbox-db"
+      REDIS_HOST: "netbox-redis"
+      ALLOWED_HOSTS: "${NETBOX_ALLOWED_HOSTS}"
+    networks:
+      - pi-services
+
+
+  nmap-scanner:
+    build:
+      context: .
+      dockerfile: Dockerfile.scanner
+    container_name: nmap-scanner
+    volumes:
+      - .:/app
+    #    networks:
+    #      - default
+    network_mode: host
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    env_file: .env
+    profiles: [ "tools" ]
+
+  unifi-controller:
+    container_name: unifi-controller
+    image: lscr.io/linuxserver/unifi-network-application:latest
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - MONGO_USER=unifi
+      - MONGO_PASS=${NETBOX_DB_PASSWORD} # Hergebruik je bestaande veilige pass of maak een nieuwe .env variabele
+      - MONGO_HOST=unifi-db
+      - MONGO_PORT=27017
+      - MONGO_DBNAME=unifi
+    volumes:
+      - "${DOCKER_ROOT}/unifi/config:/config"
+    ports:
+      - "8444:8443" # Web GUI (Aangepast naar 8444 om conflicten te vermijden)
+      - "3479:3478/udp" # STUN
+      - "10080:8080" # Device inform (Aangepast naar 10080 omdat AdGuard al op 8080 zit)
+      - "1900:1900/udp" # L2 Discovery
+      - "8843:8843" # HTTPS Portal
+      - "8880:8880" # HTTP Portal
+      - "6789:6789" # Mobile throughput test
+      - "5514:5514/udp" # Remote syslog
+    depends_on:
+      - unifi-db
+    networks:
+      - pi-services
+
+  unifi-db:
+    container_name: unifi-db
+    image: docker.io/mongo:7.0
+    restart: unless-stopped
+    volumes:
+      - "${DOCKER_ROOT}/unifi/db:/data/db"
+      - "${DOCKER_ROOT}/unifi/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro"
+    networks:
+      - pi-services
 
 networks:
   pi-services:

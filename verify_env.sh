@@ -17,7 +17,7 @@ if [[ $EUID -eq 0 ]]; then
     exit 1
 fi
 
-# 2. Variable Check (Full 56-variable sync)
+# 2. Variable Check (Full sync including Netbox)
 REQUIRED_VARS=(
     "TZ"
     "DOMAIN"
@@ -78,6 +78,15 @@ REQUIRED_VARS=(
     "CHAT_NPM_CERT_ID"
     "SIGNAL_CLI_API_PASSWORD"
     "SIGNAL_API_PORT"
+    "COTUR_SECRET"
+    "NETBOX_API_TOKEN_PEPPERS"
+    "NETBOX_SECRET_KEY"
+    "NETBOX_DB_NAME"
+    "NETBOX_DB_USER"
+    "NETBOX_DB_PASSWORD"
+    "NETBOX_ALLOWED_HOSTS"
+    "NETBOX_URL"
+    "NETBOX_API_TOKEN"
 )
 
 MISSING=0
@@ -102,9 +111,17 @@ if [ "$MISSING" -gt 0 ]; then
 fi
 
 # 3. Path Guard
-if [ ! -d "${DOCKER_ROOT}" ]; then
-    echo "[ERROR] DOCKER_ROOT directory [${DOCKER_ROOT}] does not exist." >&2
-    exit 1
+if [ ! -f "/.dockerenv" ]; then
+    if [ ! -d "${DOCKER_ROOT}" ]; then
+        echo "[ERROR] DOCKER_ROOT directory [${DOCKER_ROOT}] does not exist." >&2
+        exit 1
+    fi
+else
+    # In container context, we check for /app instead
+    if [ ! -d "/app" ]; then
+        echo "[ERROR] Internal /app directory does not exist." >&2
+        exit 1
+    fi
 fi
 
 exit 0

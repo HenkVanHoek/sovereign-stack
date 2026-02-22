@@ -1,0 +1,17 @@
+{
+    "hosts": [
+        {
+            "name": "Sovereign-Pi",
+            "ip": "192.168.178.100",
+            "comment": [
+                "Main Raspberry Pi 5 node.",
+                "Hosting core services: Nextcloud, NetBox, and NPM."
+            ]
+        },
+        {
+            "name": "OctoPi-3D",
+            "ip": "192.168.178.101",
+            "comment": "Dedicated controller for Ender 3 S1 Pro."
+        }
+    ]
+}

@@ -10,7 +10,7 @@
 # Local infrastructure data
 inventory.json
 credentials.json
-init-mongo.js
+unifi/init-mongo.js
 
 # --- Data & Storage (Excluded from Git) ---
 # These are handled by the backup script, not Git

@@ -1,6 +1,6 @@
-# Installation & Configuration Guide (v4.0)
+# Installation & Configuration Guide (v4.1)
 
-This guide provides step-by-step instructions to deploy and fine-tune your **sovereign-stack v4.0**.
+This guide provides step-by-step instructions to deploy and fine-tune your **sovereign-stack v4.1**.
 
 ## 1. Prerequisites
 Before starting, ensure you have:
@@ -97,7 +97,7 @@ To ensure your data is safe, use the system cron table to schedule the backup pi
 
 2.  **Add the following lines:**
 
-    # Sovereign Stack Automation v4.0
+    # Sovereign Stack Automation v4.1
     # 03:00 - Start Backup Pipeline
     0 3 * * * ~/sovereign-stack/backup_stack.sh
 
@@ -112,7 +112,7 @@ To use Matrix (Conduit) as your primary communication server:
 1.  **Verify Domain Delegation:**
     Ensure your `.well-known` settings are correct so external servers can find you.
 
-    curl -v https://matrix.yourdomain.com/.well-known/matrix/server
+    curl -v [https://matrix.yourdomain.com/.well-known/matrix/server](https://matrix.yourdomain.com/.well-known/matrix/server)
 
 2.  **Create User:**
     Use a client like **Element X** (Mobile) or **Element Desktop**. Enter your homeserver URL (`https://matrix.yourdomain.com`) and register a new account.
@@ -168,7 +168,7 @@ Ensure all services started correctly via the terminal:
 
 ---
 
-## 10. Homarr Service Integration Reference (v4.0)
+## 10. Homarr Service Integration Reference (v4.1)
 
 | Service                 | Icon Name             | Internal Docker URL         | Official Website                                       |
 |:------------------------|:----------------------|:----------------------------|:-------------------------------------------------------|
@@ -182,6 +182,7 @@ Ensure all services started correctly via the terminal:
 | **Frigate**             | `frigate`             | `http://frigate:5000`       | [frigate.video](https://frigate.video)                 |
 | **Portainer**           | `portainer`           | `http://portainer:9000`     | [portainer.io](https://portainer.io)                   |
 | **Nginx Proxy Manager** | `nginx-proxy-manager` | `http://npm:81`             | [nginxproxymanager.com](https://nginxproxymanager.com) |
+| **Netbox**              | `netbox`              | `http://netbox:8085`        | [netboxlabs.com](https://netboxlabs.com)               |
 
 ### 10.1 Adding Widgets
 For a sovereign overview, add these widgets to your Homarr board:

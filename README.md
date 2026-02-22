@@ -1,5 +1,3 @@
-Mijn excuses, het systeem probeert inderdaad vaak automatisch de editor (Canvas) te openen bij langere teksten. Ik zal de volledige README.md hieronder als platte tekst weergeven, waarbij elke regel begint met exact 4 spaties, zoals je hebt gevraagd. Zo kun je het zonder vertraging kopiëren naar PyCharm.
-
 # sovereign-stack v4.0: The Sovereign Blueprint
 
 The **sovereign-stack** is a project dedicated to regaining digital autonomy by hosting essential services on a local Raspberry Pi 5. It is a robust, privacy-first infrastructure blueprint designed for those who believe that data sovereignty is a fundamental right.
@@ -20,23 +18,22 @@ In an era of centralized "cloud" monopolies and constant data harvesting, this p
 
 ---
 
-## 2. The Sovereign Service Suite (18+ Services)
+## 2. The Sovereign Service Suite (Current Stack)
 The stack is a curated collection of industry-standard services, optimized to run harmoniously on the Raspberry Pi 5.
 
 ### Core Infrastructure & Cloud Office
-| Service                                                     | Role            | Purpose                                                                                |
-|:------------------------------------------------------------|:----------------|:---------------------------------------------------------------------------------------|
-| **[Nextcloud](https://nextcloud.com/)**                     | Cloud Hub       | **Office/365 Replacement:** File sync, contacts, calendar, and collaborative office.   |
-| **[Collabora Online](https://www.collaboraoffice.com/)**    | Office Suite    | Real-time document editing (Word, Excel, PowerPoint alternatives) inside Nextcloud.    |
-| **[Notify Push](https://github.com/nextcloud/notify_push)** | HPB             | High Performance Backend for real-time Nextcloud notifications and file updates.       |
-| **[Forgejo](https://forgejo.org/)**                         | Git Service     | **GitHub Replacement:** Self-hosted software forge for local code and version control. |
-| **[MariaDB](https://mariadb.org/)**                         | SQL Database    | High-performance backend for Nextcloud and other services.                             |
-| **[Redis](https://redis.io/)**                              | In-memory Cache | Acceleration for Nextcloud file locking and session handling.                          |
-| **[Nginx Proxy Manager](https://nginxproxymanager.com/)**   | Reverse Proxy   | Manages SSL, CORS headers for Matrix, and secure traffic routing.                      |
+| Service                                                   | Role            | Purpose                                                                                |
+|:----------------------------------------------------------|:----------------|:---------------------------------------------------------------------------------------|
+| **[Nextcloud](https://nextcloud.com/)**                   | Cloud Hub       | **Office/365 Replacement:** File sync, contacts, calendar, and collaborative office.   |
+| **[Forgejo](https://forgejo.org/)**                       | Git Service     | **GitHub Replacement:** Self-hosted software forge for local code and version control. |
+| **[MariaDB](https://mariadb.org/)**                       | SQL Database    | High-performance backend for Nextcloud and Forgejo.                                    |
+| **[Redis](https://redis.io/)**                            | In-memory Cache | Acceleration for Nextcloud file locking and session handling.                          |
+| **[Nginx Proxy Manager](https://nginxproxymanager.com/)** | Reverse Proxy   | Manages SSL, CORS headers, and secure traffic routing for all internal/external nodes. |
 
 ### Communication & Privacy
 | Service                                                               | Role             | Purpose                                                         |
 |:----------------------------------------------------------------------|:-----------------|:----------------------------------------------------------------|
+| **[Signal-API](https://github.com/bbernhard/signal-cli-rest-api)**    | Messaging Bridge | REST API wrapper for Signal-cli, used for automated messaging.  |
 | **[AdGuard Home](https://adguard.com/en/adguard-home/overview.html)** | DNS & Ad-block   | Network-wide ad-blocking and privacy-focused DNS (DoH/DoT).     |
 | **[Step-CA](https://smallstep.com/certificates/)**                    | Internal PKI     | Your own Certificate Authority for internal TLS/SSL management. |
 | **[Vaultwarden](https://github.com/dani-garcia/vaultwarden)**         | Password Manager | Bitwarden-compatible server for secure credential storage.      |
@@ -52,12 +49,22 @@ The stack is a curated collection of industry-standard services, optimized to ru
 ### System & Maintenance
 | Service                                              | Role           | Purpose                                                                      |
 |:-----------------------------------------------------|:---------------|:-----------------------------------------------------------------------------|
+| **[Homarr](https://homarr.dev/)**                    | Dashboard      | Sleek, customizable homepage to monitor and access all sovereign services.   |
 | **[Portainer](https://www.portainer.io/)**           | Container Mgmt | GUI for managing Docker containers, images, and networks.                    |
+| **[Netbox](https://netboxlabs.com/)**                | IPAM & DCIM    | Infrastructure resource modeling, IP address management, and device racking. |
+| **[Glances](https://nicolargo.github.io/glances/)**  | Telemetry      | Cross-platform system monitoring tool (integrated with Home Assistant).      |
 | **[Watchtower](https://containrrr.dev/watchtower/)** | Updates        | Automates the process of keeping Docker base images up-to-date.              |
 | **[MSMTP](https://marlam.de/msmtp/)**                | Mail Relay     | Lightweight SMTP client for sending system alerts and backup notifications.  |
-| **[Coturn](https://github.com/coturn/coturn)**       | TURN Server    | (Optional) Traffic relay for establishing Matrix/Nextcloud calls behind NAT. |
 
 ---
+
+## 2.1 Externalized & Federated Services (Work in Progress)
+To maintain peak performance on the ARM-based Raspberry Pi 5, highly resource-intensive services can be externalized to a secondary node (e.g., an Intel i3 server). The Pi's Nginx Proxy Manager securely routes traffic to these external nodes.
+
+* **Matrix (Synapse):** A federated communication server designed to replace WhatsApp/Signal.
+    * *Architecture Note:* While Synapse runs flawlessly on ARM processors, hosting multiple heavy instances for large communities (1000+ users) alongside Nextcloud and Frigate exceeds the optimal resource limits of a single Raspberry Pi. For heavy workloads, Synapse is externalized.
+    * *Federation Domain Example:* `matrix.piselfhosting.com`
+    * *Alternative:* For small, private groups, a lightweight Matrix alternative (**Conduit**) is included in the `docker-compose.yaml` as an optional, commented-out service.
 
 ## 3. Project Structure
 
@@ -74,7 +81,7 @@ The stack is a curated collection of industry-standard services, optimized to ru
 | `Checklist.md`                          | **Pre-Flight:** Final verification steps before live deployment.                    |
 | `clean_stack.sh`                        | Maintenance script to prune unused Docker images, containers, and networks.         |
 | `create_users.sh`                       | Helper script to initialize system users and group permissions.                     |
-| `docker-compose.yaml`                   | **Master Orchestration:** Defines all 18+ services and networks.                    |
+| `docker-compose.yaml`                   | **Master Orchestration:** Defines all 19+ services and networks.                    |
 | `First-Run Guide.md`                    | Step-by-step instructions for initial setup after installation.                     |
 | `fix-nextcloud-perms.sh`                | Surgical permission fix for Nextcloud data and preview directories.                 |
 | `gen_cert.sh`                           | Utility to generate or renew internal SSL certificates using Step-CA.               |

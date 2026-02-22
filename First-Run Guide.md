@@ -1,15 +1,21 @@
-# First-Run Guide: Service Configuration & Trust (v4.0)
+# First-Run Guide: Service Configuration & Trust (v4.1)
 
 This guide covers the essential post-installation steps to ensure your **sovereign-stack** services are trusted, connected, and fully functional.
 
 ---
 
-## 1. Step-CA: Root Certificate Trust Guide
+## 1. Certificate Strategy: Public vs. Internal Trust
 
-Because sovereign-stack uses a private Certificate Authority (Step-CA), your devices will not recognize your local SSL certificates by default. You must install the Root Certificate on every device that accesses the stack.
+The Sovereign Stack is designed to support a **Dual Certificate Strategy** using Nginx Proxy Manager (NPM):
 
-### 1.1 Export the Root Certificate
-First, you need to get the `root_ca.crt` file from your Raspberry Pi to your computer or phone. Run this on your Pi:
+**A. Public CAs (Let's Encrypt / Commercial CAs)**
+For outward-facing services (Nextcloud, Vaultwarden, Matrix), it is highly recommended to use the free **Let's Encrypt** integration built into NPM, or import your own purchased CA certificates. This ensures that any device (like your friends' smartphones) trusts your server out-of-the-box without manual configuration.
+
+**B. Private Internal CA (Step-CA)**
+For internal, highly secure services that are *not* exposed to the internet, Sovereign Stack provides its own Certificate Authority (Step-CA). If you choose to secure internal nodes with this CA, your devices will not recognize the local SSL certificates by default. You must install the Sovereign Root Certificate on every device that accesses these specific internal endpoints.
+
+### 1.1 Export the Root Certificate (For Step-CA usage only)
+If you are utilizing Step-CA for internal routing, you need to get the `root_ca.crt` file from your Raspberry Pi to your computer or phone. Run this on your Pi:
 
     cp ${DOCKER_ROOT}/step-ca/certs/root_ca.crt ~/root_ca.crt
 
@@ -62,15 +68,42 @@ To enable video calls outside your local network, you must connect the Coturn se
 1. Log in to your **Nextcloud** as an admin.
 2. Go to **Administration Settings** → **Talk**.
 3. Under **STUN servers**, add:
-   - `yourdomain.com:3478`
+   - `turn.yourdomain.com:3478`
 4. Under **TURN servers**, add:
-   - Server: `yourdomain.com:3478`
+   - Server: `turn.yourdomain.com:3478`
    - Secret: (Use the `COTUR_SECRET` from your `.env`)
    - Protocol: `UDP and TCP`
 
 ---
 
-## 4. Backup Target: Wake-on-LAN Preparation
+## 4. Nextcloud High Performance Backend (Notify Push)
+
+To enable instant file syncing and heavily reduce the load on your Raspberry Pi, the Notify Push container requires specific routing in Nginx Proxy Manager (NPM) and a final setup command in Nextcloud.
+
+### 4.1 Nginx Proxy Manager Configuration
+1. Open your NPM dashboard and edit your Nextcloud proxy host (`nextcloud.yourdomain.com`).
+2. Go to the **Custom locations** tab.
+3. Click **Add location** and enter the following details:
+   - **Location:** `^~ /push/`
+   - **Scheme:** `http`
+   - **Forward Hostname / IP:** `notify-push`
+   - **Forward Port:** `7867`
+4. Click the gear icon next to the location to open custom configuration and add the following websocket headers:
+   `proxy_set_header Upgrade $http_upgrade;`
+   `proxy_set_header Connection "Upgrade";`
+5. Click **Save**.
+
+### 4.2 Nextcloud App Activation
+Once the routing is active, initialize the app inside the Nextcloud container using the correct permissions (UID 33 for `www-data`):
+
+    docker exec --user 33 nextcloud-app php occ app:enable notify_push
+    docker exec --user 33 nextcloud-app php occ notify_push:setup [https://nextcloud.yourdomain.com/push](https://nextcloud.yourdomain.com/push)
+
+If successful, the output will confirm that the push server is configured correctly.
+
+---
+
+## 5. Backup Target: Wake-on-LAN Preparation
 
 The backup pipeline includes `wake_target.sh` logic to ensure your remote workstation is online.
 
@@ -81,31 +114,48 @@ The backup pipeline includes `wake_target.sh` logic to ensure your remote workst
 
 ---
 
-## 5. Summary of Automated Tasks
+## 6. Summary of Automated Tasks
 - **Backups:** Run daily at `03:00` via `backup_stack.sh`.
 - **Dead Man's Switch:** Verifies integrity and remote arrival at `03:30` via `monitor_backup.sh`.
 - **Container Updates:** Watchtower checks for security patches every 24 hours.
 
 ---
 
-## 6. Matrix (Conduit): Replacing WhatsApp/Signal
+## 7. Matrix (Conduit & Synapse)
 
-To use Matrix as your primary communication server, you must ensure federation works.
+Matrix is the Sovereign Stack's recommended protocol for replacing WhatsApp/Signal.
 
-1.  **Verify Domain Delegation:**
+1.  **Federation Verification:**
     Run this command on your workstation to verify your proxy settings:
     `curl -v https://matrix.yourdomain.com/.well-known/matrix/server`
     *You should see a JSON response pointing to port 443.*
 
-2.  **Create User:**
-    Use a client like **Element X** (Mobile) or **Element Desktop**.
-    * **Homeserver:** `https://matrix.yourdomain.com`
-    * **Action:** Click "Create Account".
-    * *Note: If `SIGNUPS_ALLOWED` is false in `.env`, you must enable it temporarily to register.*
+2.  **Architecture Note:**
+    If you are running the lightweight **Conduit** container on your Pi for a small group, you can register via an app like Element. If you are serving a large community (1000+ users), you should externalize **Synapse** to a heavier Intel node, routing traffic to it via the Pi's Nginx Proxy Manager.
 
 ---
 
-## 7. Homarr Dashboard Setup
+## 8. Netbox Setup & Initialization
+
+Netbox requires specific directories and a superuser to function correctly.
+
+**1. Pre-installation: Directory Setup**
+Run the following commands from your project root before starting the stack:
+
+    cd ~/docker
+    mkdir -p netbox/media netbox/reports netbox/scripts netbox/db
+    sudo chown -R 1000:1000 netbox/media netbox/reports netbox/scripts
+
+**2. Post-installation: Create Superuser**
+Once the Netbox container is fully running, create your administrator account:
+
+    docker exec -it netbox /opt/netbox/netbox/manage.py createsuperuser
+
+Follow the interactive prompts to set your username, email, and password.
+
+---
+
+## 9. Homarr Dashboard Setup
 
 After starting the stack, your Homarr dashboard will be empty. Follow these steps to populate it:
 
@@ -116,26 +166,29 @@ After starting the stack, your Homarr dashboard will be empty. Follow these step
 
 ---
 
-## 8. Homarr Service Integration Reference (v4.0)
+## 10. Homarr Service Integration Reference (v4.1)
 
-| Service                 | Icon Name             | Internal Docker URL         | Official Website                                       |
-|:------------------------|:----------------------|:----------------------------|:-------------------------------------------------------|
-| **Nextcloud**           | `nextcloud`           | `http://nextcloud-app:80`   | [nextcloud.com](https://nextcloud.com)                 |
-| **Collabora**           | `libreoffice`         | `http://collabora:9980`     | [collaboraoffice.com](https://collaboraoffice.com)     |
-| **Forgejo**             | `forgejo`             | `http://forgejo:3000`       | [forgejo.org](https://forgejo.org)                     |
-| **Matrix (Conduit)**    | `matrix`              | `http://matrix:6167`        | [conduit.rs](https://conduit.rs)                       |
-| **AdGuard Home**        | `adguard-home`        | `http://adguardhome:3000`   | [adguard.com](https://adguard.com)                     |
-| **Vaultwarden**         | `bitwarden`           | `http://vaultwarden:80`     | [bitwarden.com](https://bitwarden.com)                 |
-| **Home Assistant**      | `home-assistant`      | `http://homeassistant:8123` | [home-assistant.io](https://home-assistant.io)         |
-| **Frigate**             | `frigate`             | `http://frigate:5000`       | [frigate.video](https://frigate.video)                 |
-| **Nginx Proxy Manager** | `nginx-proxy-manager` | `http://npm:81`             | [nginxproxymanager.com](https://nginxproxymanager.com) |
+| Service                 | Icon Name             | Internal Docker URL         | Official Website                                                     |
+|:------------------------|:----------------------|:----------------------------|:---------------------------------------------------------------------|
+| **Nextcloud** | `nextcloud`           | `http://nextcloud-app:80`   | [nextcloud.com](https://nextcloud.com)                               |
+| **Collabora**           | `libreoffice`         | `http://collabora:9980`     | [collaboraoffice.com](https://collaboraoffice.com)                   |
+| **Forgejo**             | `forgejo`             | `http://forgejo:3000`       | [forgejo.org](https://forgejo.org)                                   |
+| **Matrix (Conduit)**    | `matrix`              | `http://matrix:6167`        | [conduit.rs](https://conduit.rs)                                     |
+| **AdGuard Home**        | `adguard-home`        | `http://adguardhome:3000`   | [adguard.com](https://adguard.com)                                   |
+| **Vaultwarden**         | `bitwarden`           | `http://vaultwarden:80`     | [bitwarden.com](https://bitwarden.com)                               |
+| **Home Assistant**      | `home-assistant`      | `http://homeassistant:8123` | [home-assistant.io](https://home-assistant.io)                       |
+| **Frigate**             | `frigate`             | `http://frigate:5000`       | [frigate.video](https://frigate.video)                               |
+| **Portainer**           | `portainer`           | `http://portainer:9000`     | [portainer.io](https://portainer.io)                                 |
+| **Nginx Proxy Manager** | `nginx-proxy-manager` | `http://npm:81`             | [nginxproxymanager.com](https://nginxproxymanager.com)               |
+| **Netbox**              | `netbox`              | `http://netbox:8085`        | [netboxlabs.com](https://netboxlabs.com)                             |
+| **Glances**             | `glances`             | `http://glances:61208`      | [nicolargo.github.io/glances/](https://nicolargo.github.io/glances/) |
 
-### 8.1 Saving your Layout
+### 10.1 Saving your Layout
 To ensure your dashboard configuration is safe, export your layout via **Management → Boards → Export**. Save this as `homarr_layout.json` in your project root.
 
 ---
 
-## 9. Verifying the Sovereign Guards
+## 11. Verifying the Sovereign Guards
 
 To ensure your stack is correctly protected, you can perform a manual "Pre-flight" check:
 

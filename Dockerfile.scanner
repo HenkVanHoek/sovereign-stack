@@ -1,0 +1,36 @@
+# ==============================================================================
+# Sovereign Stack - Network Scanner Image
+#
+# Purpose: Provides a lightweight environment for Nmap discovery scans.
+# Features: Non-root MAC discovery via setcap.
+#
+# Copyright (c) 2026 Henk van Hoek. Licensed under the GNU GPL-3.0 License.
+# ==============================================================================
+
+FROM python:3.11-alpine
+
+# Install system dependencies
+# nmap: The core scanning utility
+# libcap: Required to grant network capabilities to the nmap binary
+# bash: Required for script compatibility
+RUN apk add --no-cache \
+    nmap \
+    nmap-scripts \
+    libcap \
+    bash
+
+# Grant nmap the ability to send raw packets and manage network interfaces
+# This allows the container to perform MAC discovery (ARP scans) without
+# running as the root user.
+RUN setcap cap_net_raw,cap_net_admin,cap_net_bind_service+eip /usr/bin/nmap
+
+# Install Python dependencies for NetBox integration
+RUN pip install --no-cache-dir \
+    pynetbox \
+    python-dotenv
+
+# Set the working directory according to stack standards
+WORKDIR /app
+
+# The scripts are mounted via volumes in docker-compose.yaml to allow
+# real-time updates from PyCharm.

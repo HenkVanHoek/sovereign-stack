@@ -1,0 +1,28 @@
+# ==============================================================================
+# Sovereign Stack - Infrastructure SSH Scanner
+#
+# Purpose: SSH-based discovery of VMs, Docker containers, and OctoPrint.
+# Features: Uses 'uv' for high-speed dependency management.
+#
+# Copyright (c) 2026 Henk van Hoek. Licensed under the GNU GPL-3.0 License.
+# ==============================================================================
+
+FROM python:3.11-slim
+
+# Copy the uv binary from the official image
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y openssh-client && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python dependencies using uv
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --system pynetbox paramiko python-dotenv
+
+# Copy the scanner and the version file
+COPY infra_scanner.py version.py ./
+
+# The JSON configs are mounted via volumes in docker-compose.yaml
+CMD ["python", "infra_scanner.py"]

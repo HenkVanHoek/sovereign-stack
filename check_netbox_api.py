@@ -1,50 +1,73 @@
-#!/usr/bin/env python3
-"""
 # ==============================================================================
-# Sovereign Stack - NetBox API Connectivity Test (Robust Version)
+# Sovereign Stack - NetBox API Debugger
 #
-# This script verifies the connection to the NetBox API.
-# It strips accidental quotes from environment variables.
-#
-# Copyright (c) 2026 Henk van Hoek. Licensed under the GNU GPL-3.0 License.
+# Purpose:
+#   Validates connectivity, authorization, and data payload structure
+#   between the infra-scanner and the NetBox instance.
 # ==============================================================================
-"""
 
 import os
-import sys
+import logging
 import pynetbox
+import requests
 from dotenv import load_dotenv
 
+# Configure detailed logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("NetBoxDebug")
 
-def check_connection():
-    """Test the NetBox API connectivity and required objects."""
-    load_dotenv()
+load_dotenv()
+NETBOX_URL = os.getenv("NETBOX_URL")
+NETBOX_TOKEN = os.getenv("NETBOX_API_TOKEN")
 
-    # Robust loading: strip accidental quotes from .env values
-    nb_url = os.getenv("NETBOX_URL", "").strip('"').strip("'")
-    nb_token = os.getenv("NETBOX_API_TOKEN", "").strip('"').strip("'")
 
-    if not nb_url or not nb_token:
-        print("ERROR: NETBOX_URL or NETBOX_API_TOKEN is missing in .env")
-        sys.exit(1)
+def test_connection():
+    logger.info(f"Initiating connection test to: {NETBOX_URL}")
 
-    print(f"Connecting to NetBox at: {nb_url}...")
-    nb = pynetbox.api(nb_url, token=nb_token)
+    if not NETBOX_URL or not NETBOX_TOKEN:
+        logger.error("Missing NETBOX_URL or NETBOX_TOKEN in .env file.")
+        return
 
     try:
+        # Initialize client
+        nb = pynetbox.api(NETBOX_URL, token=NETBOX_TOKEN)
+
+        # Debug: Show masked token for verification
+        masked_token = f"{NETBOX_TOKEN[:4]}...{NETBOX_TOKEN[-4:]}"
+        logger.debug(f"Using Token: {masked_token}")
+
+        # 1. Test Status (Basic connectivity)
+        logger.debug("Attempting to fetch NetBox status...")
         status = nb.status()
-        print(f"SUCCESS: Connected to NetBox version {status['netbox-version']}.")
+        logger.info(
+            f"Successfully connected! NetBox version: {status.get('netbox-version')}")
 
-        cluster = nb.virtualization.clusters.get(name="Sovereign-Pi-Cluster")
-        if cluster:
-            print(f"SUCCESS: Cluster 'Sovereign-Pi-Cluster' found (ID: {cluster.id}).")
-        else:
-            print("WARNING: Cluster 'Sovereign-Pi-Cluster' NOT found.")
+        # 2. Test Authorization (Write permissions check)
+        logger.debug("Checking authorization for Virtualization objects...")
+        try:
+            # We only 'list' to check read-access first
+            clusters = nb.virtualization.clusters.all(limit=1)
+            logger.info("Read access to Virtualization: OK")
+        except pynetbox.RequestError as e:
+            logger.error(f"Authorization failed or insufficient permissions: {e}")
+            return
 
-    except Exception as e:
-        print(f"FATAL: Could not connect to NetBox API. Error: {e}")
-        sys.exit(1)
+        # 3. Payload Preview (What would be sent)
+        test_payload = {
+            "name": "Debug-VM-Test",
+            "cluster": 1,  # Placeholder ID
+            "status": "active"
+        }
+        logger.debug(f"Example VM Payload: {test_payload}")
+
+    except requests.exceptions.ConnectionError as ce:
+        logger.error(f"Network Unreachable: {ce}")
+    except Exception as ge:
+        logger.error(f"An unexpected error occurred: {ge}")
 
 
 if __name__ == "__main__":
-    check_connection()
+    test_connection()

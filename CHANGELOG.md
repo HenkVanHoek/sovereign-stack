@@ -3,7 +3,23 @@
 All notable changes to the Sovereign Stack project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [4.3.0] - 2026-02-23
+### Added
+- **Docker Metadata Discovery:** The Infra Scanner now extracts container image names, creation dates, and port mappings via SSH.
+- **Rich NetBox Integration:** Containers are now synchronized to NetBox as Virtual Machines within dedicated Docker clusters.
+- **Markdown Documentation:** Automated generation of detailed Markdown tables in NetBox comments for each container.
+- **Cluster Mapping:** Intelligent mapping of hosts to existing NetBox clusters (e.g., `Cluster-Sovereign-Pi`).
+- **English Documentation:** Updated the main README.md and code comments to English for GitHub publication standards.
 
+### Changed
+- **Enhanced OctoPrint Verification:** Improved HTML title checks to prevent false-positive detection on proxy and NVR services.
+- **Network Logic:** Migrated the Infra Scanner to the `pi-services` Docker network for direct internal API access to NetBox.
+
+### Fixed
+- **API Endpoint Error:** Resolved the `'Endpoint' object has no attribute 'cluster_types'` error by correcting the pynetbox virtualization path.
+- **Resource Busy Error:** Fixed issues where `.env` files were locked during `docker cp` operations by utilizing native Docker volumes and environment loading.
+
+---
 ## [4.2.0] - 2026-02-22 "The Discovery Update"
 
 ### Added

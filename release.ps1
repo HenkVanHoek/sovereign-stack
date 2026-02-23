@@ -10,8 +10,7 @@ $versionFile = "version.py"
 if (Test-Path $versionFile) {
     $currentContent = Get-Content $versionFile
     $currentVer = ([regex]::Match($currentContent, '(?<=")\d+\.\d+\.\d+(?=")')).Value
-    Write-Host "Detected version in ${versionFile}: v${currentVer}" -ForegroundColor Yellow
-}
+    Write-Host "Detected version in (${versionFile}): v${currentVer}" -ForegroundColor Yellow}
 
 $confirm = Read-Host "Have you completed the commit and want to create the Git Tag now? (y/n)"
 if ($confirm -eq 'y') {

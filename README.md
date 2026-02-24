@@ -1,7 +1,5 @@
 # sovereign-stack: The Sovereign Blueprint
 
-# sovereign-stack: The Sovereign Blueprint
-
 The **sovereign-stack** is a comprehensive infrastructure project dedicated to regaining digital autonomy by hosting essential services on a local Raspberry Pi 5. This is not just a collection of scripts, but a robust, privacy-first blueprint designed for those who believe that data sovereignty is a fundamental human right in an age of centralized cloud dominance.
 
 ### Beyond the Cloud

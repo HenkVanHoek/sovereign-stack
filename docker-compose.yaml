@@ -5,7 +5,6 @@ services:
       context: .
       dockerfile: Dockerfile.infra_scanner
     container_name: infra-scanner
-    restart: unless-stopped
     volumes:
       - ./inventory.json:/app/inventory.json:ro
       - ./credentials.json:/app/credentials.json:ro

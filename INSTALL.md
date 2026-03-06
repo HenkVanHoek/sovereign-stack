@@ -1,13 +1,16 @@
-# Installation & Configuration Guide (v4.1)
+# Installation & Configuration Guide (v4.3.0)
 
-This guide provides step-by-step instructions to deploy and fine-tune your **sovereign-stack v4.1**.
+This guide provides step-by-step instructions to deploy and fine-tune your **sovereign-stack v4.3.0**.
 
 ## 1. Prerequisites
 Before starting, ensure you have:
 * **Hardware:** Raspberry Pi 5 with an NVMe SSD (1TB recommended).
 * **OS:** Raspberry Pi OS (64-bit) or any Debian-based distribution.
-* **Network:** Static IP assigned to your Pi; ports 80/443 forwarded if using a public domain.
-* **Dependencies:** Docker and Docker Compose (the `INSTALL.sh` script will check for system tools like `openssl`, `msmtp`, and `wakeonlan`).
+* **Network:** Static IP assigned to your Pi.
+* **Ports:** Ensure the following ports are forwarded if using a public domain:
+    * 80/443 (HTTP/HTTPS)
+    * 5222/5269 (XMPP Federation/Client - for future-proofing communication services)
+* **Dependencies:** Docker and Docker Compose (the INSTALL.sh script will check for system tools like openssl, msmtp, and wakeonlan).
 
 ---
 
@@ -16,182 +19,101 @@ Before starting, ensure you have:
 ### 2.1 Cloning the Repository
 The sovereign-stack is designed to run from a dedicated directory in your home folder. This ensures that security guards function correctly without requiring root privileges.
 
-* **Option A: HTTPS (Recommended for quick setup)**
-    Best for users without pre-configured SSH keys on GitHub.
-
     cd ~
-    git clone https://github.com/your-username/sovereign-stack.git
-    cd sovereign-stack
-
-* **Option B: SSH (Recommended for developers)**
-    Use this if you have added your Pi's public key (`~/.ssh/id_ed25519.pub`) to your GitHub account.
-
-    cd ~
-    git clone git@github.com:your-username/sovereign-stack.git
+    git clone [https://github.com/your-username/sovereign-stack.git](https://github.com/your-username/sovereign-stack.git)
     cd sovereign-stack
 
 ### 2.2 Run the Installation Wizard
-The wizard will create your local `.env` file and configure your security keys and DNS settings.
+The wizard will create your local .env file and configure your security keys and DNS settings.
 
     chmod +x INSTALL.sh
     ./INSTALL.sh
 
-### 2.3 Start the Stack
-Deploy all 19+ containers in detached mode.
+---
 
-    docker compose up -d
+## 3. Environment Validation (The Sentinel)
+Before the stack can be started, you must populate the .env file with your specific credentials. The Sovereign Stack uses a mandatory validation gate to prevent unstable deployments.
+
+1. Edit your environment file:
+    vi .env
+2. Verify the configuration:
+    ./verify_env.sh
+
+Note: The stack will refuse to start if any mandatory variables are missing or incorrectly formatted.
 
 ---
 
-## 3. Configuring Remote Access (SSH Keys)
+## 4. Infrastructure Discovery Setup (NetBox)
+Version 4.3.0 introduces automated asset mapping. Before starting the full service suite, you must initialize your inventory management layer.
 
-For the automated backup and monitoring pipeline, the Raspberry Pi must be able to log in to your remote workstation (Windows, Linux, or Mac) without a password.
+### 4.1 Prepare Discovery Metadata
+Copy the templates and configure your host mappings:
 
-### 3.1 Generate SSH Keys on the Pi
-If you haven't already generated a key pair on your Pi:
+    cp inventory.json.example inventory.json
+    cp credentials.json.example credentials.json
 
-    ssh-keygen -t ed25519 -C "pi-backup-key"
+* Edit credentials.json with the SSH credentials for your target nodes.
+* Edit inventory.json to map your hostnames to the correct NetBox Cluster IDs.
 
-*Press Enter for all prompts to use the default path and no passphrase.*
+### 4.2 Initial Discovery Scan
+Execute the discovery suite to populate NetBox with your existing containers and VMs:
 
-### 3.2 Copy the Public Key to your Workstation
-Replace `user` and `target-ip` with your workstation's details as defined in your `.env`.
-
-* **For Linux/Mac Workstations:**
-
-    ssh-copy-id user@target-ip
-
-* **For Windows Workstations:**
-    Ensure the **OpenSSH Server** is enabled in Windows Settings. Then, manually add the Pi's public key to the `authorized_keys` file:
-
-    cat ~/.ssh/id_ed25519.pub | ssh user@target-ip "powershell -Command 'New-Item -ItemType Directory -Path \$HOME\.ssh -Force; Add-Content -Path \$HOME\.ssh\authorized_keys -Value \$Input'"
-
-### 3.3 Verify Connection
-Test the connection from the Pi. You should be logged in without being prompted for a password:
-
-    ssh user@target-ip "echo Connection Successful"
+    ./run_task.sh python3 infra_scanner.py
+    ./run_task.sh python3 import_inventory.py
 
 ---
 
-## 4. Automated Dependency Management (JIT)
+## 5. Automation & Crontab Configuration
+To ensure the reliability and "Sovereign" nature of the stack, maintenance tasks must be automated via the user's crontab.
 
-The sovereign-stack is self-maintaining. To ensure the backup pipeline works out-of-the-box, even on fresh OS installs, it utilizes Just-In-Time (JIT) installation.
+1. Open the following block (replace REPLACE_WITH_USER with your actual username):
 
-### 4.1 Automated Tool Installation
-The `backup_stack.sh` script automatically detects missing dependencies. For instance, if `wakeonlan` is missing, the script will automatically execute:
+    # Sovereign Stack Automation Schema (v4.3.0)
+    # --------------------------------------------------------------------------
 
-    sudo apt-get update && sudo apt-get install -y wakeonlan
+    # 1. Daily Infrastructure Backup (03:00)
+    0 3 * * * /home/REPLACE_WITH_USER/sovereign-stack/backup_stack.sh > /home/REPLACE_WITH_USER/sovereign-stack/logs/backup.log 2>&1
 
-### 4.2 Sudo Privileges
-The user executing the scripts must have sudo privileges to allow for automated maintenance tasks and binary installations.
+    # 2. Daily Backup Integrity & Email Report (03:30)
+    30 3 * * * /home/REPLACE_WITH_USER/sovereign-stack/monitor_backup.sh > /home/REPLACE_WITH_USER/sovereign-stack/logs/monitor.log 2>&1
 
----
+    # 3. Daily Infrastructure Discovery (04:00)
+    0 4 * * * /home/REPLACE_WITH_USER/sovereign-stack/run_task.sh python3 /home/REPLACE_WITH_USER/sovereign-stack/infra_scanner.py && /home/REPLACE_WITH_USER/sovereign-stack/run_task.sh python3 /home/REPLACE_WITH_USER/sovereign-stack/import_inventory.py >> /home/REPLACE_WITH_USER/sovereign-stack/logs/discovery.log 2>&1
 
-## 5. Scheduling Automated Backups
-
-To ensure your data is safe, use the system cron table to schedule the backup pipeline.
-
-1.  **Open Crontab:**
-
-    crontab -e
-
-2.  **Add the following lines:**
-
-    # Sovereign Stack Automation v4.1
-    # 03:00 - Start Backup Pipeline
-    0 3 * * * ~/sovereign-stack/backup_stack.sh
-
-    # 03:30 - Start Integrity Check & Monitoring
-    30 3 * * * ~/sovereign-stack/monitor_backup.sh
----
-
-## 6. Matrix: Replacing WhatsApp/Signal
-
-To use Matrix (Conduit) as your primary communication server:
-
-1.  **Verify Domain Delegation:**
-    Ensure your `.well-known` settings are correct so external servers can find you.
-
-    curl -v [https://matrix.yourdomain.com/.well-known/matrix/server](https://matrix.yourdomain.com/.well-known/matrix/server)
-
-2.  **Create User:**
-    Use a client like **Element X** (Mobile) or **Element Desktop**. Enter your homeserver URL (`https://matrix.yourdomain.com`) and register a new account.
-    *Note: Registration is controlled by the `SIGNUPS_ALLOWED` variable in your `.env`.*
+    # 4. Monthly Stack Hygiene (1st of the month at 05:00)
+    0 5 1 * * /home/REPLACE_WITH_USER/sovereign-stack/clean_stack.sh >> /home/REPLACE_WITH_USER/sovereign-stack/logs/clean.log 2>&1
 
 ---
 
-## 7. Nextcloud & Office: Replacing Microsoft 365
+## 6. Security Hardening
+After the initial installation, the stack enforces a strict permission model.
 
-To transition away from Office 365, Nextcloud is paired with Collabora Online.
-
-1.  **Verify Collabora:**
-    Open a Word document (`.docx`) in Nextcloud. It should load immediately in the browser via the Collabora container.
-
-2.  **Optimization (Memory Caching):**
-    Your stack includes **Redis**. Ensure Nextcloud is utilizing it by checking your `config.php` for the correct Redis host and port (6379).
-
-3.  **Fix Permissions (Surgical):**
-    If you encounter "Access Denied" errors, DO NOT run `chown -R` on the root. Use the specific fix:
-
-    sudo chown -R 33:33 ./nextcloud/data
+1. Secure the environment file:
+    chmod 600 .env
+2. Enforce surgical UID ownership:
+    ./clean_stack.sh
 
 ---
 
-## 8. Step-CA: Managing Your Internal Trust
+## 7. Service Overview & Access
+Once the stack is running (docker compose up -d), services are accessible via the following internal endpoints. It is recommended to configure Homarr as your primary entry point.
 
-The **Step-CA** service acts as your sovereign Certificate Authority.
-
-1.  **Get your Root Fingerprint:**
-    You will need this to connect your clients securely.
-
-    docker exec step-ca step certificate fingerprint /home/step/certs/root_ca.crt
-
-2.  **Generate Internal Certs:**
-    Use the provided `gen_cert.sh` script to issue certificates for services that do not face the public internet.
-
----
-
-## 9. Post-Installation & Dashboard Setup
-
-After deployment, configure the **Homarr** dashboard to display your services.
-
-### 9.1 Verify Container Status
-Ensure all services started correctly via the terminal:
-
-    docker compose ps
-
-### 9.2 Initial Homarr Configuration
-1.  Navigate to `http://<your-pi-ip>:7575`.
-2.  Complete the **Onboarding Wizard** to create your administrator account.
-3.  **Enable Docker Integration:**
-    Add a new **Docker** integration in the Management settings. Homarr will automatically discover your containers via the mounted Docker socket.
+| Service                | Container Name        | Internal URL          | Official Source                                   |
+| :--------------------- | :-------------------- | :-------------------- | :------------------------------------------------ |
+| **Homarr** | homarr                | http://homarr:7575    | [https://homarr.dev](https://homarr.dev)                                |
+| **Nextcloud** | nextcloud-app         | http://nextcloud:80   | [https://nextcloud.com](https://nextcloud.com)                             |
+| **Forgejo** | forgejo               | http://forgejo:3000   | [https://forgejo.org](https://forgejo.org)                               |
+| **NetBox** | netbox                | http://netbox:8085    | [https://netboxlabs.com](https://netboxlabs.com)                             |
+| **AdGuard Home** | adguard-home          | http://adguardhome:3000| [https://adguard.com/adguard-home.html](https://adguard.com/adguard-home.html)            |
+| **Home Assistant** | home-assistant        | http://homeassistant:8123| [https://home-assistant.io](https://home-assistant.io)                      |
+| **Frigate** | frigate               | http://frigate:5000   | [https://frigate.video](https://frigate.video)                             |
+| **Nginx Proxy Manager**| nginx-proxy-manager   | http://npm:81         | [https://nginxproxymanager.com](https://nginxproxymanager.com)                     |
 
 ---
 
-## 10. Homarr Service Integration Reference (v4.1)
-
-| Service                 | Icon Name             | Internal Docker URL         | Official Website                                       |
-|:------------------------|:----------------------|:----------------------------|:-------------------------------------------------------|
-| **Nextcloud**           | `nextcloud`           | `http://nextcloud-app:80`   | [nextcloud.com](https://nextcloud.com)                 |
-| **Collabora**           | `libreoffice`         | `http://collabora:9980`     | [collaboraoffice.com](https://collaboraoffice.com)     |
-| **Forgejo**             | `forgejo`             | `http://forgejo:3000`       | [forgejo.org](https://forgejo.org)                     |
-| **Matrix (Conduit)**    | `matrix`              | `http://matrix:6167`        | [conduit.rs](https://conduit.rs)                       |
-| **AdGuard Home**        | `adguard-home`        | `http://adguardhome:3000`   | [adguard.com](https://adguard.com)                     |
-| **Vaultwarden**         | `bitwarden`           | `http://vaultwarden:80`     | [bitwarden.com](https://bitwarden.com)                 |
-| **Home Assistant**      | `home-assistant`      | `http://homeassistant:8123` | [home-assistant.io](https://home-assistant.io)         |
-| **Frigate**             | `frigate`             | `http://frigate:5000`       | [frigate.video](https://frigate.video)                 |
-| **Portainer**           | `portainer`           | `http://portainer:9000`     | [portainer.io](https://portainer.io)                   |
-| **Nginx Proxy Manager** | `nginx-proxy-manager` | `http://npm:81`             | [nginxproxymanager.com](https://nginxproxymanager.com) |
-| **Netbox**              | `netbox`              | `http://netbox:8085`        | [netboxlabs.com](https://netboxlabs.com)               |
-
-### 10.1 Adding Widgets
-For a sovereign overview, add these widgets to your Homarr board:
-* **Docker Widget:** Real-time CPU/RAM usage of every container.
-* **System Health:** Summary of your Pi 5 load, SSD space, and temperature.
-
-### 10.2 Saving your Layout
-To ensure your dashboard configuration is safe, export your layout via **Management → Boards → Export**. Save this as `homarr_layout.json` in your project root.
+## 8. Post-Installation
+After completing this guide, proceed to the First-Run Guide.md to configure SSL certificates, trust settings for Step-CA, and the Homarr dashboard layout.
 
 ---
-
-*This documentation is part of the **Sovereign Stack** project. This program is distributed in the hope that it will
+*This documentation is part of the Sovereign Stack project.
+Copyright (c) 2026 Henk van Hoek. Licensed under the GNU GPL-3.0.*

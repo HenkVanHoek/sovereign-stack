@@ -1,7 +1,7 @@
 #!/bin/bash
 # File: clean_stack.sh
 # Part of the sovereign-stack project.
-# Version: 4.0.0 (Sovereign Awakening)
+# Version: See version.py
 #
 # Copyright (C) 2026 Henk van Hoek
 #
@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see https://www.gnu.org/licenses/.
+# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
 
 set -u
 GREEN='\033[0;32m'
@@ -24,25 +24,26 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# 1. Identity Guard (Sectie 2: Root Prevention)
+# 1. Identity Guard
 if [[ $EUID -eq 0 ]]; then
     echo -e "${RED}[ERROR] This script should NOT be run with sudo or as root.${NC}" >&2
     exit 1
 fi
 
-# 2. Sovereign Guard: Locking (Sectie 2: Anti-Stacking)
+# 2. Sovereign Guard: Locking
 exec 300>/tmp/sovereign_clean.lock
 if ! flock -n 300; then
     echo "[INFO] Maintenance script is already running."
     exit 0
 fi
 
-# 3. Environment Setup (Sectie 2)
+# 3. Environment Setup
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 ENV_PATH="${SCRIPT_DIR}/.env"
 
 if [ -f "$ENV_PATH" ]; then
     set -a
+    # shellcheck source=/dev/null
     source <(sed 's/\r$//' "$ENV_PATH")
     set +a
 fi
@@ -54,7 +55,7 @@ if ! "${SCRIPT_DIR}/verify_env.sh" > /dev/null 2>&1; then
 fi
 
 echo -e "${BLUE}==========================================${NC}"
-echo -e "${BLUE}   Sovereign Stack Maintenance (v4.0)     ${NC}"
+echo -e "${BLUE}       Sovereign Stack Maintenance        ${NC}"
 echo -e "${BLUE}==========================================${NC}"
 
 # 4. Prune Docker Resources
@@ -62,25 +63,37 @@ echo -e "\n${GREEN}[1/4] Cleaning up unused Docker resources...${NC}"
 # Removes stopped containers, unused networks, and dangling images
 docker system prune -f
 
-# 5. Surgical Permission Fix (v4.0 Standard)
+# 5. Surgical Permission Fix (v4.3.0 Standard)
 echo -e "\n${GREEN}[2/4] Enforcing Surgical Permissions...${NC}"
 
 # Nextcloud Data (UID 33)
 if [ -d "${DOCKER_ROOT}/nextcloud/data" ]; then
-    echo " -> Fixing Nextcloud (UID 33)..."
+    echo " -> Fixing Nextcloud Data (UID 33)..."
     sudo chown -R 33:33 "${DOCKER_ROOT}/nextcloud/data"
 fi
 
-# Matrix/Conduit DB (UID 100)
-if [ -d "${DOCKER_ROOT}/matrix/db" ]; then
-    echo " -> Fixing Matrix (UID 100)..."
-    sudo chown -R 100:100 "${DOCKER_ROOT}/matrix/db"
+# MariaDB Nextcloud (UID 999)
+if [ -d "${DOCKER_ROOT}/nextcloud/db" ]; then
+    echo " -> Fixing Nextcloud Database (UID 999)..."
+    sudo chown -R 999:999 "${DOCKER_ROOT}/nextcloud/db"
 fi
 
-# MariaDB (UID 999)
-if [ -d "${DOCKER_ROOT}/nextcloud/db" ]; then
-    echo " -> Fixing Database (UID 999)..."
-    sudo chown -R 999:999 "${DOCKER_ROOT}/nextcloud/db"
+# MariaDB Forgejo (UID 999)
+if [ -d "${DOCKER_ROOT}/forgejo/db" ]; then
+    echo " -> Fixing Forgejo Database (UID 999)..."
+    sudo chown -R 999:999 "${DOCKER_ROOT}/forgejo/db"
+fi
+
+# Forgejo Data (UID 1000)
+if [ -d "${DOCKER_ROOT}/forgejo/data" ]; then
+    echo " -> Fixing Forgejo Data (UID 1000)..."
+    sudo chown -R 1000:1000 "${DOCKER_ROOT}/forgejo/data"
+fi
+
+# PostgreSQL NetBox (UID 70)
+if [ -d "${DOCKER_ROOT}/netbox/db" ]; then
+    echo " -> Fixing NetBox Database (UID 70)..."
+    sudo chown -R 70:70 "${DOCKER_ROOT}/netbox/db"
 fi
 
 # 6. Disk Usage Check
@@ -97,8 +110,7 @@ fi
 # 7. OS Updates Check
 echo -e "\n${GREEN}[4/4] Checking for OS Updates...${NC}"
 sudo apt-get update > /dev/null
-UPGRADES=$(apt list --upgradable 2>/dev/null | grep -v "Listing..." | wc -l)
-
+UPGRADES=$(apt list --upgradable 2>/dev/null | grep -c -v "Listing...")
 if [ "$UPGRADES" -gt 0 ]; then
     echo -e "${BLUE}[INFO] ${UPGRADES} packages can be upgraded. Run 'sudo apt upgrade' manually.${NC}"
 else

@@ -1,13 +1,29 @@
 #!/usr/bin/env python3
 """
 # ==============================================================================
-# Sovereign Stack - NetBox Inventory Importer
+# File: import_inventory.py
+# Part of the sovereign-stack project.
+# Version: See version.py
 #
+# Sovereign Stack - NetBox Inventory Importer
 # This script automates the registration of Docker services into NetBox.
 # It extracts service names and images from docker-compose.yaml and
 # synchronizes them as Virtual Machines with custom fields.
 #
-# Copyright (c) 2026 Henk van Hoek. Licensed under the GNU GPL-3.0 License.
+# Copyright (C) 2026 Henk van Hoek
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
 # ==============================================================================
 """
 
@@ -59,13 +75,15 @@ def get_docker_services_with_images(compose_path):
     if not os.path.exists(compose_path):
         fatal_error(f"Compose file not found at {compose_path}")
 
-    with open(compose_path, 'r') as f:
+    with open(compose_path, "r") as f:
         try:
             data = yaml.safe_load(f)
-            services_data = data.get('services', {})
+            services_data = data.get("services", {})
             # Create a mapping of service name to its docker image
-            return {name: config.get('image', 'unknown') for name, config in
-                    services_data.items()}
+            return {
+                name: config.get("image", "unknown")
+                for name, config in services_data.items()
+            }
         except yaml.YAMLError as exc:
             fatal_error(f"Error parsing YAML: {exc}")
 
@@ -76,7 +94,7 @@ def main():
 
     # 4. Anti-Stacking (Flock)
     lock_path = "/tmp/sovereign_netbox_import.lock"
-    lock_file = open(lock_path, 'w')
+    lock_file = open(lock_path, "w")
     try:
         fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except IOError:
@@ -93,7 +111,7 @@ def main():
     check_safety_guards(active_root)
 
     # Robust loading of NetBox credentials
-    nb_url = os.getenv("NETBOX_URL", "").strip('"').strip("'").split(']')[0].strip('[')
+    nb_url = os.getenv("NETBOX_URL", "").strip('"').strip("'").split("]")[0].strip("[")
     nb_token = os.getenv("NETBOX_API_TOKEN", "").strip('"').strip("'")
 
     if not nb_url or not nb_token:
@@ -111,25 +129,25 @@ def main():
     cluster = nb.virtualization.clusters.get(name="Sovereign-Pi-Cluster")
     if not cluster:
         fatal_error(
-            "Cluster 'Sovereign-Pi-Cluster' not found. Create it in NetBox GUI first.")
+            "Cluster 'Sovereign-Pi-Cluster' not found. Create it in NetBox GUI first."
+        )
 
     # 5. Sync Loop
     for service_name, image_name in services_dict.items():
         log_message(f"Syncing service: {service_name} (Image: {image_name})")
 
         vm_payload = {
-            'name': service_name,
-            'cluster': cluster.id,
-            'status': 'active',
-            'custom_fields': {
-                'docker_image': image_name
-            },
-            'comments': f"Automated import from Sovereign Stack on {datetime.now().date()}"
+            "name": service_name,
+            "cluster": cluster.id,
+            "status": "active",
+            "custom_fields": {"docker_image": image_name},
+            "comments": f"Automated import from Sovereign Stack on {datetime.now().date()}",
         }
 
         # Check for existing VM within the specific cluster
-        vm = nb.virtualization.virtual_machines.get(name=service_name,
-                                                    cluster_id=cluster.id)
+        vm = nb.virtualization.virtual_machines.get(
+            name=service_name, cluster_id=cluster.id
+        )
 
         try:
             if vm:

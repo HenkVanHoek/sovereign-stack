@@ -1,26 +1,28 @@
+#!/usr/bin/env python3
+"""
 # ==============================================================================
+# File: infra_scanner.py
+# Part of the sovereign-stack project.
+# Version: See version.py
+#
 # Sovereign Stack - Infrastructure SSH Scanner
 #
-# Copyright (c) 2026 Henk van Hoek
+# Copyright (C) 2026 Henk van Hoek
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
 # ==============================================================================
+"""
 
 import os
 import json
@@ -37,8 +39,7 @@ from version import __version__
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger("InfraScanner")
 
@@ -55,7 +56,7 @@ else:
 NETBOX_URL = os.getenv("NETBOX_URL")
 NETBOX_TOKEN = os.getenv("NETBOX_API_TOKEN")
 
-CLUSTER_MAP_ENV = os.getenv("NETBOX_CLUSTER_MAPPING", "").strip('\"\'')
+CLUSTER_MAP_ENV = os.getenv("NETBOX_CLUSTER_MAPPING", "").strip("\"'")
 logger.info(f"[Init] Raw NETBOX_CLUSTER_MAPPING loaded: '{CLUSTER_MAP_ENV}'")
 
 CLUSTER_MAPPING = {}
@@ -90,7 +91,7 @@ def ensure_custom_fields(nb):
                 "description": "External port(s) mapped on the host",
                 "filter_logic": "loose",
                 "ui_visibility": "read-write",
-                "object_types": ["virtualization.virtualmachine"]
+                "object_types": ["virtualization.virtualmachine"],
             },
             {
                 "name": "public_url",
@@ -100,7 +101,7 @@ def ensure_custom_fields(nb):
                 "description": "Direct link to the web interface",
                 "filter_logic": "loose",
                 "ui_visibility": "read-write",
-                "object_types": ["virtualization.virtualmachine"]
+                "object_types": ["virtualization.virtualmachine"],
             },
             {
                 "name": "docker_image",
@@ -110,8 +111,8 @@ def ensure_custom_fields(nb):
                 "description": "The container image name",
                 "filter_logic": "loose",
                 "ui_visibility": "read-write",
-                "object_types": ["virtualization.virtualmachine"]
-            }
+                "object_types": ["virtualization.virtualmachine"],
+            },
         ]
         for f in fields_to_create:
             try:
@@ -131,7 +132,7 @@ def verify_octoprint_html(ip):
         f"http://{ip}:80",
         f"http://{ip}:5000",
         f"https://{ip}:443",
-        f"https://{ip}:5000"
+        f"https://{ip}:5000",
     ]
     for url in endpoints:
         try:
@@ -140,7 +141,10 @@ def verify_octoprint_html(ip):
 
             # Check for either the standard title or the specific redirect URI
             if response.status_code in [200, 302]:
-                if "<title>OctoPrint" in response.text or "permissions=STATUS" in response.text:
+                if (
+                    "<title>OctoPrint" in response.text
+                    or "permissions=STATUS" in response.text
+                ):
                     return True
         except requests.RequestException:
             continue
@@ -168,17 +172,17 @@ def parse_docker_ports(raw_ports):
 
 
 def load_local_config():
-    inv_path = '/app/inventory.json'
-    creds_path = '/app/credentials.json'
+    inv_path = "/app/inventory.json"
+    creds_path = "/app/credentials.json"
 
     if not os.path.exists(inv_path):
-        inv_path = 'inventory.json'
-        creds_path = 'credentials.json'
+        inv_path = "inventory.json"
+        creds_path = "credentials.json"
 
     try:
-        with open(inv_path, 'r') as f_inv:
+        with open(inv_path, "r") as f_inv:
             inv_data = json.load(f_inv)
-        with open(creds_path, 'r') as f_creds:
+        with open(creds_path, "r") as f_creds:
             creds_data = json.load(f_creds)
         return inv_data, creds_data
     except Exception as e:
@@ -187,31 +191,33 @@ def load_local_config():
 
 
 def get_connection_details(host_name, creds_config):
-    defaults = creds_config.get('default', {})
-    overrides = creds_config.get('overrides', {}).get(host_name, {})
+    defaults = creds_config.get("default", {})
+    overrides = creds_config.get("overrides", {}).get(host_name, {})
     return {
-        "user": overrides.get('ssh_user', defaults.get('ssh_user')),
-        "pass": overrides.get('ssh_pass', defaults.get('ssh_pass'))
+        "user": overrides.get("ssh_user", defaults.get("ssh_user")),
+        "pass": overrides.get("ssh_pass", defaults.get("ssh_pass")),
     }
 
 
 def scan_host(host_info, auth_creds):
-    ip = host_info['ip']
-    name = host_info['name']
-    results = {"vms": [], "containers": [], "host_disks": [],
-               "octoprint": verify_octoprint_html(ip), "online": False}
+    ip = host_info["ip"]
+    name = host_info["name"]
+    results = {
+        "vms": [],
+        "containers": [],
+        "host_disks": [],
+        "octoprint": verify_octoprint_html(ip),
+        "online": False,
+    }
 
-    # Voer de HTTP scan uit ongeacht de SSH status
+    # Execute the HTTP scan regardless of the SSH status
 
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
         logger.info(f"Connecting to {name} ({ip})...")
         ssh.connect(
-            ip,
-            username=auth_creds['user'],
-            password=auth_creds['pass'],
-            timeout=5
+            ip, username=auth_creds["user"], password=auth_creds["pass"], timeout=5
         )
         results["online"] = True
 
@@ -225,7 +231,7 @@ def scan_host(host_info, auth_creds):
                     "memory": None,
                     "vcpus": None,
                     "disk": None,
-                    "ip": None
+                    "ip": None,
                 }
 
                 info_cmd = f'vboxmanage showvminfo "{vm_name}" --machinereadable'
@@ -266,9 +272,9 @@ def scan_host(host_info, auth_creds):
                 results["vms"].append(vm_data)
 
         docker_cmd = (
-            "docker ps --format '{\"name\": \"{{.Names}}\", "
-            "\"image\": \"{{.Image}}\", \"created\": \"{{.CreatedAt}}\", "
-            "\"ports\": \"{{.Ports}}\"}'"
+            'docker ps --format \'{"name": "{{.Names}}", '
+            '"image": "{{.Image}}", "created": "{{.CreatedAt}}", '
+            '"ports": "{{.Ports}}"}\''
         )
         _, stdout, _ = ssh.exec_command(docker_cmd)
 
@@ -284,12 +290,14 @@ def scan_host(host_info, auth_creds):
             for line in df_out:
                 parts = line.split()
                 if len(parts) >= 6:
-                    results["host_disks"].append({
-                        "disk": parts[0],
-                        "size_gb": parts[1].replace('G', ''),
-                        "free_gb": parts[3].replace('G', ''),
-                        "mount": parts[5]
-                    })
+                    results["host_disks"].append(
+                        {
+                            "disk": parts[0],
+                            "size_gb": parts[1].replace("G", ""),
+                            "free_gb": parts[3].replace("G", ""),
+                            "mount": parts[5],
+                        }
+                    )
         else:
             cmd = "wmic logicaldisk get Caption,FreeSpace,Size"
             _, stdout_wmic, _ = ssh.exec_command(cmd)
@@ -301,12 +309,14 @@ def scan_host(host_info, auth_creds):
                         drive = parts[0]
                         free_b = int(parts[1])
                         size_b = int(parts[2])
-                        results["host_disks"].append({
-                            "disk": drive,
-                            "size_gb": size_b // (1024 ** 3),
-                            "free_gb": free_b // (1024 ** 3),
-                            "mount": drive
-                        })
+                        results["host_disks"].append(
+                            {
+                                "disk": drive,
+                                "size_gb": size_b // (1024**3),
+                                "free_gb": free_b // (1024**3),
+                                "mount": drive,
+                            }
+                        )
                     except (ValueError, IndexError):
                         continue
 
@@ -316,7 +326,8 @@ def scan_host(host_info, auth_creds):
         logger.warning(f"  [Offline] {name}: {e}")
         if results["octoprint"]:
             logger.info(
-                f"  [Scan] SSH failed, but OctoPrint web interface found on {ip}.")
+                f"  [Scan] SSH failed, but OctoPrint web interface found on {ip}."
+            )
             return results
         return None
     finally:
@@ -339,7 +350,7 @@ def sync_device_to_netbox(nb, name, host_disks):
     md_lines = [
         "### Host Disk Storage",
         "| Drive/Mount | Total Size (GB) | Free Space (GB) |",
-        "|---|---|---|"
+        "|---|---|---|",
     ]
 
     for d in host_disks:
@@ -360,18 +371,29 @@ def sync_device_to_netbox(nb, name, host_disks):
 
 
 def sync_vm_to_netbox(
-    nb, name, cluster_id, comments, vcpus=None, memory=None,
-    disk=None, ip_address=None, docker_ports=None, docker_image=None
+    nb,
+    name,
+    cluster_id,
+    comments,
+    vcpus=None,
+    memory=None,
+    disk=None,
+    ip_address=None,
+    docker_ports=None,
+    docker_image=None,
 ):
     vm_params = {
         "name": name,
         "cluster": cluster_id,
         "status": "active",
-        "comments": comments
+        "comments": comments,
     }
-    if vcpus: vm_params["vcpus"] = vcpus
-    if memory: vm_params["memory"] = memory
-    if disk: vm_params["disk"] = disk
+    if vcpus:
+        vm_params["vcpus"] = vcpus
+    if memory:
+        vm_params["memory"] = memory
+    if disk:
+        vm_params["disk"] = disk
 
     vm_params["custom_fields"] = {}
     if docker_ports:
@@ -411,11 +433,11 @@ def sync_vm_to_netbox(
                 ip_obj = nb.ipam.ip_addresses.create(
                     address=ip_address,
                     assigned_object_type="virtualization.vminterface",
-                    assigned_object_id=interface.id
+                    assigned_object_id=interface.id,
                 )
             elif ip_obj.assigned_object_id != interface.id:
-                vm_primary = getattr(vm, 'primary_ip4', None)
-                if vm_primary and getattr(vm_primary, 'id', None) == ip_obj.id:
+                vm_primary = getattr(vm, "primary_ip4", None)
+                if vm_primary and getattr(vm_primary, "id", None) == ip_obj.id:
                     vm.primary_ip4 = None
                     vm.save()
 
@@ -423,9 +445,11 @@ def sync_vm_to_netbox(
                 ip_obj.assigned_object_id = interface.id
                 ip_obj.save()
 
-            current_primary = getattr(vm, 'primary_ip4', None)
-            if current_primary is None or getattr(current_primary, 'id',
-                                                  None) != ip_obj.id:
+            current_primary = getattr(vm, "primary_ip4", None)
+            if (
+                current_primary is None
+                or getattr(current_primary, "id", None) != ip_obj.id
+            ):
                 vm.primary_ip4 = ip_obj.id
                 vm.save()
         except Exception as ip_err:
@@ -436,8 +460,8 @@ def sync_to_netbox(host_info, scan_results):
     if DRY_RUN or not nb_client:
         return
 
-    name = host_info['name']
-    ip = host_info['ip']
+    name = host_info["name"]
+    ip = host_info["ip"]
 
     resolved_cluster_name = CLUSTER_MAPPING.get(ip)
     if resolved_cluster_name:
@@ -445,14 +469,13 @@ def sync_to_netbox(host_info, scan_results):
     else:
         resolved_cluster_name = f"Cluster-{name}"
         logger.warning(
-            f"  [Mapping] IP {ip} NOT FOUND. Fallback: '{resolved_cluster_name}'")
+            f"  [Mapping] IP {ip} NOT FOUND. Fallback: '{resolved_cluster_name}'"
+        )
 
     try:
         if scan_results.get("host_disks"):
             sync_device_to_netbox(
-                nb=nb_client,
-                name=name,
-                host_disks=scan_results["host_disks"]
+                nb=nb_client, name=name, host_disks=scan_results["host_disks"]
             )
 
         if scan_results.get("vms"):
@@ -479,7 +502,7 @@ def sync_to_netbox(host_info, scan_results):
                     vcpus=vm_data.get("vcpus"),
                     memory=vm_data.get("memory"),
                     disk=vm_data.get("disk"),
-                    ip_address=vm_data.get("ip")
+                    ip_address=vm_data.get("ip"),
                 )
 
         if scan_results.get("containers"):
@@ -507,8 +530,7 @@ def sync_to_netbox(host_info, scan_results):
 
                 if raw_ports:
                     p_list = [
-                        f"  - `{p.strip()}`" for p in raw_ports.split(",")
-                        if p.strip()
+                        f"  - `{p.strip()}`" for p in raw_ports.split(",") if p.strip()
                     ]
                     ports_list = "\n".join(p_list)
                     ports_md = f"**Ports:**\n{ports_list}"
@@ -529,7 +551,7 @@ def sync_to_netbox(host_info, scan_results):
                     cluster_id=docker_cluster.id,
                     comments=markdown_comments,
                     docker_ports=parsed_ports,
-                    docker_image=c_image
+                    docker_image=c_image,
                 )
 
         logger.info(f"  [NetBox] Sync completed for {name}")
@@ -547,17 +569,21 @@ def main():
     inventory_data, credentials_data = load_local_config()
     full_report = {}
     if inventory_data and credentials_data:
-        for host in inventory_data['hosts']:
-            creds = get_connection_details(host['name'], credentials_data)
+        for host in inventory_data["hosts"]:
+            creds = get_connection_details(host["name"], credentials_data)
             scan_results = scan_host(host, creds)
             if scan_results:
-                full_report[host['name']] = scan_results
+                full_report[host["name"]] = scan_results
                 sync_to_netbox(host, scan_results)
 
         report_json = json.dumps(full_report, indent=4)
         logger.info(
-            "\n" + "*" * 60 + "\nDISCOVERY OUTPUT DATA:\n" +
-            report_json + "\n" + "*" * 60
+            "\n"
+            + "*" * 60
+            + "\nDISCOVERY OUTPUT DATA:\n"
+            + report_json
+            + "\n"
+            + "*" * 60
         )
 
     logger.info("Scan cycle completed.")

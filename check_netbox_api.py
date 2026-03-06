@@ -1,10 +1,30 @@
+#!/usr/bin/env python3
+"""
 # ==============================================================================
-# Sovereign Stack - NetBox API Debugger
+# File: check_netbox_api.py
+# Part of the sovereign-stack project.
+# Version: See version.py
 #
-# Purpose:
-#   Validates connectivity, authorization, and data payload structure
-#   between the infra-scanner and the NetBox instance.
+# Sovereign Stack - NetBox API Debugger
+# Validates connectivity, authorization, and data payload structure
+# between the infra-scanner and the NetBox instance.
+#
+# Copyright (C) 2026 Henk van Hoek
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
 # ==============================================================================
+"""
 
 import os
 import logging
@@ -14,8 +34,7 @@ from dotenv import load_dotenv
 
 # Configure detailed logging
 logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger("NetBoxDebug")
 
@@ -43,13 +62,14 @@ def test_connection():
         logger.debug("Attempting to fetch NetBox status...")
         status = nb.status()
         logger.info(
-            f"Successfully connected! NetBox version: {status.get('netbox-version')}")
+            f"Successfully connected! NetBox version: {status.get('netbox-version')}"
+        )
 
         # 2. Test Authorization (Write permissions check)
         logger.debug("Checking authorization for Virtualization objects...")
         try:
             # We only 'list' to check read-access first
-            clusters = nb.virtualization.clusters.all(limit=1)
+            _ = list(nb.virtualization.clusters.all(limit=1))
             logger.info("Read access to Virtualization: OK")
         except pynetbox.RequestError as e:
             logger.error(f"Authorization failed or insufficient permissions: {e}")
@@ -59,7 +79,7 @@ def test_connection():
         test_payload = {
             "name": "Debug-VM-Test",
             "cluster": 1,  # Placeholder ID
-            "status": "active"
+            "status": "active",
         }
         logger.debug(f"Example VM Payload: {test_payload}")
 

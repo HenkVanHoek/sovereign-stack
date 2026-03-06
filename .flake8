@@ -1,0 +1,8 @@
+[flake8]
+# Match Black's line length
+max-line-length = 88
+# E501: ignore line length for the license headers
+# F541: ignore f-strings without placeholders (if you haven't fixed them yet)
+extend-ignore = E501
+# Do not lint data or environment directories
+exclude = .git,__pycache__,venv,backups,nextcloud,netbox,forgejo

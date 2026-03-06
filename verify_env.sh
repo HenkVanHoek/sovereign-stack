@@ -1,13 +1,22 @@
 #!/bin/bash
 # File: verify_env.sh
 # Part of the sovereign-stack project.
-# Version: 4.1.0 (Integrity Update)
+# Version: See version.py
 #
 # Copyright (C) 2026 Henk van Hoek
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License.
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
 
 set -u
 
@@ -17,7 +26,7 @@ if [[ $EUID -eq 0 ]]; then
     exit 1
 fi
 
-# 2. Variable Check (Full sync including Netbox)
+# 2. Variable Check (Full sync including Netbox, Forgejo and Garage S3)
 REQUIRED_VARS=(
     "TZ"
     "DOMAIN"
@@ -75,7 +84,6 @@ REQUIRED_VARS=(
     "FORGEJO_DB_USER"
     "FORGEJO_DB_PASSWORD"
     "FORGEJO_DB_NAME"
-    "CHAT_NPM_CERT_ID"
     "SIGNAL_CLI_API_PASSWORD"
     "SIGNAL_API_PORT"
     "COTUR_SECRET"
@@ -87,6 +95,8 @@ REQUIRED_VARS=(
     "NETBOX_ALLOWED_HOSTS"
     "NETBOX_URL"
     "NETBOX_API_TOKEN"
+    "GARAGE_RPC_SECRET"
+    "GARAGE_ROOT"
 )
 
 MISSING=0
@@ -94,6 +104,7 @@ MISSING=0
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 if [ -f "${SCRIPT_DIR}/.env" ]; then
     set -a
+    # shellcheck source=/dev/null
     source <(sed 's/\r$//' "${SCRIPT_DIR}/.env")
     set +a
 fi

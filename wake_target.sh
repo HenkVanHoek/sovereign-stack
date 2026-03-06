@@ -1,7 +1,7 @@
 #!/bin/bash
 # File: wake_target.sh
 # Part of the sovereign-stack project.
-# Version: 4.0.0 (Sovereign Awakening)
+# Version: See version.py
 #
 # Copyright (C) 2026 Henk van Hoek
 #
@@ -16,22 +16,23 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see https://www.gnu.org/licenses/.
+# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
 
 set -u
 
-# 1. Identity Guard (Sectie 2: Root Prevention)
+# 1. Identity Guard (Section 2: Root Prevention)
 if [[ $EUID -eq 0 ]]; then
     echo "[ERROR] This script should NOT be run with sudo or as root." >&2
     exit 1
 fi
 
-# 2. Environment Setup & Pre-flight (Sectie 2)
+# 2. Environment Setup & Pre-flight
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 ENV_PATH="${SCRIPT_DIR}/.env"
 
 if [ -f "$ENV_PATH" ]; then
     set -a
+    # shellcheck source=/dev/null
     source <(sed 's/\r$//' "$ENV_PATH")
     set +a
 fi
@@ -59,7 +60,7 @@ if ! command -v wakeonlan &> /dev/null; then
     exit 1
 fi
 
-# 5. Core Logic: Wake-on-LAN Polling Loop (Sectie 3C)
+# 5. Core Logic: Wake-on-LAN Polling Loop
 # Send Magic Packet to broadcast address
 wakeonlan "$PC_MAC" > /dev/null 2>&1
 

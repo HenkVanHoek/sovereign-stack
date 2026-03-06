@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
 # ==============================================================================
-#
 # File: scan_network.py
 # Part of the sovereign-stack project.
-# Version: 4.3.1 (Sovereign Awakening)
-# Sovereign Stack - Network Discovery Scanner (v4.3.1)
+# Version: See version.py
 #
+# Sovereign Stack - Network Discovery Scanner
 # Performs Nmap ARP scans across the Main Network and secondary segments
 # to synchronize discovered hosts with NetBox.
+#
+# Copyright (C) 2026 Henk van Hoek
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,9 +22,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see https://www.gnu.org/licenses/.
-#
-# Copyright (c) 2026 Henk van Hoek.
+# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
 # ==============================================================================
 """
 
@@ -79,7 +78,7 @@ def parse_nmap_output(output):
         # Identify the MAC address line and pair it with the last found IP
         mac_match = re.search(r"MAC Address: ([0-9A-F:]{17})", line)
         if mac_match and current_ip:
-            devices.append({'ip': current_ip, 'mac': mac_match.group(1)})
+            devices.append({"ip": current_ip, "mac": mac_match.group(1)})
             current_ip = None
 
     return devices
@@ -98,7 +97,7 @@ def main():
         fatal_error("Another network scan instance is already running.")
 
     # 2. NetBox API Initialization
-    nb_url = os.getenv("NETBOX_URL", "").strip('"').strip("'").split(']')[0].strip('[')
+    nb_url = os.getenv("NETBOX_URL", "").strip('"').strip("'").split("]")[0].strip("[")
     nb_token = os.getenv("NETBOX_API_TOKEN", "").strip('"').strip("'")
 
     if not nb_url or not nb_token:
@@ -119,8 +118,8 @@ def main():
 
     # 4. NetBox Synchronization Loop
     for dev in all_discovered:
-        mac = dev['mac'].upper()
-        ip = dev['ip']
+        mac = dev["mac"].upper()
+        ip = dev["ip"]
 
         # Match discovered MAC against NetBox DCIM interfaces
         interface = nb.dcim.interfaces.get(mac_address=mac)
@@ -136,14 +135,15 @@ def main():
                     address=full_ip,
                     assigned_object_type="dcim.interface",
                     assigned_object_id=interface.id,
-                    status='active',
-                    description=f"Auto-synced by Sovereign Scan on {datetime.now().date()}"
+                    status="active",
+                    description=f"Auto-synced by Sovereign Scan on {datetime.now().date()}",
                 )
             except Exception as e:
                 log_message(f"Failed to sync IP {ip} for {device_name}: {e}")
         else:
             log_message(
-                f"Unregistered MAC discovered: {mac} at {ip}. Requires staging.")
+                f"Unregistered MAC discovered: {mac} at {ip}. Requires staging."
+            )
 
     log_message("Network discovery and synchronization complete.")
 

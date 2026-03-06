@@ -1,7 +1,7 @@
 #!/bin/bash
 # File: backup_stack.sh
 # Part of the sovereign-stack project.
-# Version: 4.1.4 (Linter optimized & Full Header)
+# Version: See version.py
 #
 # Copyright (C) 2026 Henk van Hoek
 #
@@ -25,13 +25,13 @@ set -u
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 ENV_PATH="${SCRIPT_DIR}/.env"
 
-# 2. Identity Guard (Sectie 2: Root Prevention)
+# 2. Identity Guard (Section 2: Root Prevention)
 if [[ $EUID -eq 0 ]]; then
     echo "[ERROR] This script should NOT be run with sudo or as root."
     exit 1
 fi
 
-# 3. Sovereign Guard: Heavy Duty Locking (Sectie 2: Anti-Stacking)
+# 3. Sovereign Guard: Heavy Duty Locking (Section 2: Anti-Stacking)
 exec 100>/tmp/sovereign_backup.lock
 if ! flock -n 100; then
     exit 0
@@ -61,7 +61,7 @@ fatal_error() {
     exit 1
 }
 
-# New Permission Helper (Sectie 5: Permission Strategy)
+# New Permission Helper (Section 5: Permission Strategy)
 check_dir_ownership() {
     local target_dir="$1"
     local expected_uid="$2"
@@ -75,7 +75,7 @@ check_dir_ownership() {
     fi
 }
 
-# 4. Environment & Path Guard (Sectie 2: Pre-flight Check)
+# 4. Environment & Path Guard (Section 2: Pre-flight Check)
 if [ -f "$ENV_PATH" ]; then
     set -a
     # shellcheck disable=SC1091,SC1090
@@ -93,7 +93,7 @@ if [ ! -d "${DOCKER_ROOT:-}" ]; then
     fatal_error "DOCKER_ROOT directory [${DOCKER_ROOT:-}] does not exist."
 fi
 
-# 5. Permission Pre-flight Checks (Sectie 5: Database Ownership)
+# 5. Permission Pre-flight Checks (Section 5: Database Ownership)
 # MariaDB services expect UID 999
 check_dir_ownership "${DOCKER_ROOT}/nextcloud/db" 999 "Nextcloud DB"
 check_dir_ownership "${DOCKER_ROOT}/forgejo/db" 999 "Forgejo DB"
@@ -116,20 +116,20 @@ exec >> "$LOG_FILE" 2>&1
 
 log_message "--- Backup Routine Started ---"
 
-# 6. System Status (Sectie 3: Telemetry)
+# 6. System Status (Section 3: Telemetry)
 RAW_TEMP=$(vcgencmd measure_temp | grep -oP '\d+\.\d+')
 TEMP_INT=${RAW_TEMP%.*}
 TEMP_DISPLAY="${RAW_TEMP}'C"
 DISK_USAGE=$(df -h "${DOCKER_ROOT}" | awk 'NR==2 {print $5}')
 log_message "System Status: Temp=$TEMP_DISPLAY | Disk=$DISK_USAGE"
 
-# 7. Database Exports (Sectie 3: Database)
+# 7. Database Exports (Section 3: Database)
 log_message "Exporting Databases (Nextcloud, Forgejo, Netbox)..."
 docker exec nextcloud-db mariadb-dump -u nextcloud -p"$NEXTCLOUD_DB_PASSWORD" nextcloud > "$NEXTCLOUD_DB_EXPORT" || log_message "WARNING: Nextcloud Database export failed."
 docker exec --user mysql forgejo-db mariadb-dump -u "${FORGEJO_DB_USER}" -p"${FORGEJO_DB_PASSWORD}" "${FORGEJO_DB_NAME}" > "$FORGEJO_DB_EXPORT" || log_message "WARNING: Forgejo Database export failed."
 docker exec -e PGPASSWORD="${NETBOX_DB_PASSWORD}" netbox-db pg_dump -U "${NETBOX_DB_USER}" -d "${NETBOX_DB_NAME}" -F c > "$NETBOX_DB_EXPORT" || log_message "WARNING: Netbox Database export failed."
 
-# 8. Archive & Encrypt (Sectie 3: Security)
+# 8. Archive & Encrypt (Section 3: Security)
 log_message "Archiving and Encrypting (sovereign_stack_${DATE})..."
 EXCLUDES=("--exclude=backups" "--exclude=.git" "--exclude=nextcloud/db" "--exclude=portainer/data" "--exclude=forgejo/db" "--exclude=netbox/db")
 
@@ -140,7 +140,7 @@ EXCLUDES=("--exclude=backups" "--exclude=.git" "--exclude=nextcloud/db" "--exclu
 sudo tar "${EXCLUDES[@]}" -czf - -C "$DOCKER_ROOT" . | \
 openssl enc -aes-256-cbc -salt -pbkdf2 -pass "pass:$BACKUP_PASSWORD" -out "${BACKUP_DIR}/${FILENAME}"
 
-# 9. Remote Wake-up & SFTP Transfer (Sectie 3: WOL Utility)
+# 9. Remote Wake-up & SFTP Transfer (Section 3: WOL Utility)
 CLEAN_IP=$(echo "$BACKUP_TARGET_IP" | sed -e 's|^http://||' -e 's|^https://||')
 SFTP_STATUS=1
 TARGET_REACHABLE=0
@@ -162,7 +162,7 @@ if [ $TARGET_REACHABLE -eq 1 ]; then
     rm "$BATCH_FILE"
 fi
 
-# 10. Cleanup & Reporting (Sectie 3: Reporting)
+# 10. Cleanup & Reporting (Section 3: Reporting)
 find "$BACKUP_DIR" -maxdepth 1 -name "sovereign_stack_*.enc" -mtime "+${BACKUP_RETENTION_DAYS}" -delete
 
 PRIORITY="Normal"; PRIORITY_HEADER="3"
@@ -184,7 +184,7 @@ fi
 log_message "$STATUS_MSG"
 log_message "--- Backup Routine Finished ---"
 
-# 11. Email Report (Sectie 3: Reporting)
+# 11. Email Report (Section 3: Reporting)
 TEMP_MAIL=$(mktemp)
 {
     echo "To: ${BACKUP_EMAIL}"; echo "Subject: ${SUBJECT}"; echo "X-Priority: ${PRIORITY_HEADER}"

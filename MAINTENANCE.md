@@ -5,7 +5,7 @@ This guide outlines the routine tasks required to keep your **sovereign-stack** 
 ## 1. Inventory & Discovery Audit (v4.2.x)
 With the introduction of the Infra Scanner, it is essential to verify your asset inventory monthly:
 * **NetBox Consistency**: Ensure the virtual machines and containers listed in NetBox match your actual running services.
-* **OctoPrint Status**: Verify that 3D printers are correctly identified and accessible via the scanner[cite: 3].
+* **OctoPrint Status**: Verify that 3D printers are correctly identified and accessible via the scanner.
 * **Credential Rotation**: Periodically review `credentials.json` for outdated SSH passwords.
 
 ## 2. Windows-based Development Workflow

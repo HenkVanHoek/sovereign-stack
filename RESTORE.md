@@ -39,7 +39,7 @@ Extract the files into your project directory. We use `/home/${USER}/docker` as 
 1. **Start the Database Container:** `docker compose up -d nextcloud-db`
 2. **Wait 15 seconds** for the database to initialize.
 3. **Import the SQL Export:**
-    
+
     docker exec -i nextcloud-db mariadb -u nextcloud -p"YOUR_DB_PASSWORD" nextcloud < /home/${USER}/docker/nextcloud/nextcloud_db_export.sql
 
 ### Step D: Surgical Permission Fix (Critical)
@@ -47,14 +47,14 @@ After extraction, file ownership may be reset to root. You MUST restore service-
 
     # 1. Reset general ownership to local user
     sudo chown -R $USER:$USER /home/${USER}/docker
-    
+
     # 2. Nextcloud Data (www-data)
     sudo chown -R 33:33 /home/${USER}/docker/nextcloud/data
-    
+
     # 3. Matrix / Conduit Database (conduit)
     # Check your container UID if different, usually 100 or root
     sudo chown -R 100:100 /home/${USER}/docker/matrix/db
-    
+
     # 4. Bring the full stack online
     docker compose up -d
 
@@ -97,6 +97,6 @@ If you edited scripts on Windows, repair them using `sed` to remove hidden `^M` 
 
 ---
 
-*This documentation is part of the **Sovereign Stack** project. 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY. 
+*This documentation is part of the **Sovereign Stack** project.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY.
 Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*

@@ -1,7 +1,8 @@
 #!/bin/bash
 # File: create_users.sh
 # Part of the sovereign-stack project.
-# Version: 4.0.0 (Sovereign Awakening)
+# Version: See version.py
+#
 # Copyright (C) 2026 Henk van Hoek
 #
 # This program is free software: you can redistribute it and/or modify
@@ -17,7 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
 
-
 set -u
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -29,6 +29,7 @@ ENV_PATH="${SCRIPT_DIR}/.env"
 
 if [ -f "$ENV_PATH" ]; then
     set -a
+    # shellcheck source=/dev/null
     source <(sed 's/\r$//' "$ENV_PATH")
     set +a
 fi
@@ -45,7 +46,7 @@ if [ ! -f "nieuwe_leden.csv" ]; then
     exit 1
 fi
 
-# Check of registratie open staat
+# Check if registration is open
 if [[ "${SIGNUPS_ALLOWED:-false}" != "true" ]]; then
     echo -e "${RED}[ERROR] SIGNUPS_ALLOWED staat op false in .env.${NC}"
     echo "Zet dit tijdelijk op true om bulk-gebruikers aan te maken."
@@ -56,21 +57,21 @@ MATRIX_HOST="https://matrix.${DOMAIN}"
 echo -e "${GREEN}Start batch verwerking voor: $MATRIX_HOST${NC}"
 echo "---------------------------------------------------"
 
-# 3. Loop door CSV (Scheidingsteken is puntkomma ';')
+# 3. Loop through CSV (Delimiter is semicolon ';')
 while IFS=';' read -r NAAM EMAIL || [ -n "$NAAM" ]; do
-    # Sla lege regels over
+    # Skip empty lines
     [[ -z "$NAAM" ]] && continue
 
-    # A. Genereer Gebruikersnaam (kleine letters, spaties worden punten)
-    # Voorbeeld: "Rudi van de Wel" -> "rudi.van.de.wel"
+    # A. Generate Username (lowercase, spaces become dots)
+    # Example: "Rudi van de Wel" -> "rudi.van.de.wel"
     USER_ID=$(echo "$NAAM" | tr '[:upper:]' '[:lower:]' | tr ' ' '.' | tr -cd 'a-z0-9.')
 
-    # B. Genereer Veilig Wachtwoord (12 tekens)
+    # B. Generate Secure Password (12 characters)
     PASSWORD=$(openssl rand -base64 12)
 
     echo -n "Bezig met $NAAM (@$USER_ID)... "
 
-    # C. API Call naar Matrix (Register)
+    # C. API Call to Matrix (Register)
     HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
         -H "Content-Type: application/json" \
         -d "{\"auth\": {\"type\": \"m.login.dummy\"}, \"username\": \"$USER_ID\", \"password\": \"$PASSWORD\"}" \
@@ -79,7 +80,7 @@ while IFS=';' read -r NAAM EMAIL || [ -n "$NAAM" ]; do
     if [ "$HTTP_CODE" -eq 200 ]; then
         echo -e "${GREEN}[GELUKT]${NC}"
 
-        # D. Stuur Welkomstmail
+        # D. Send Welcome Email
         (
             echo "Subject: Welkom bij Liberale Vrienden (Sovereign Stack)"
             echo "To: $EMAIL"
@@ -106,7 +107,7 @@ while IFS=';' read -r NAAM EMAIL || [ -n "$NAAM" ]; do
             echo "Henk van Hoek"
         ) | msmtp "$EMAIL"
 
-        # E. Anti-Spam Pauze (belangrijk voor Freedom Internet limieten)
+        # E. Anti-Spam Pause (important for Freedom Internet limits)
         sleep 10
 
     elif [ "$HTTP_CODE" -eq 400 ] || [ "$HTTP_CODE" -eq 403 ]; then

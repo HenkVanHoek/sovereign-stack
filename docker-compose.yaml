@@ -1,10 +1,26 @@
 services:
 
+  s3-mount-fixer:
+    container_name: s3-mount-fixer
+    image: alpine:latest
+    volumes:
+        - /mnt:/mnt:rshared
+        - ${DOCKER_ROOT}/scripts:/scripts:ro
+    environment:
+        TZ: "${TZ}"
+        CHECK_INTERVAL: "300"
+    entrypoint: ["/bin/sh", "-c", "while true; do /scripts/fix-s3-permissions.sh; sleep $$CHECK_INTERVAL; done"]
+    restart: always
+    labels:
+        - "com.centurylinklabs.watchtower.enable=false"
+
   infra-scanner:
     build:
       context: .
       dockerfile: Dockerfile.infra_scanner
     container_name: infra-scanner
+    environment:
+      TZ: "${TZ}"
     volumes:
       - ./inventory.json:/app/inventory.json:ro
       - ./credentials.json:/app/credentials.json:ro
@@ -18,6 +34,8 @@ services:
     container_name: portainer
     image: portainer/portainer-ce:latest
     restart: unless-stopped
+    environment:
+      TZ: "${TZ}"
     security_opt:
       - "no-new-privileges:true"
     ports:
@@ -50,6 +68,11 @@ services:
       - "/etc/localtime:/etc/localtime:ro"
       - "${DOCKER_ROOT}/config:/config"
       - "${DOCKER_ROOT}/storage:/media/frigate"
+      - type: bind
+        source: /mnt/garage_s3/frigate/storage
+        target: /media/frigate/s3_storage
+        bind:
+          propagation: rshared
       - type: tmpfs
         target: /tmp/cache
         tmpfs:
@@ -61,6 +84,7 @@ services:
       - "8555:8555/tcp"
       - "8555:8555/udp"
     environment:
+      TZ: "${TZ}"
       FRIGATE_RTSP_PASSWORD: "${FRIGATE_RTSP_PASSWORD}"
       FRIGATE_MQTT_ENABLED: "True"
       FRIGATE_MQTT_HOST: "mqtt"
@@ -71,6 +95,7 @@ services:
       - pi-services
     depends_on:
       - mqtt
+      - s3-mount-fixer
 
   homeassistant:
     container_name: homeassistant
@@ -78,6 +103,8 @@ services:
     restart: unless-stopped
     privileged: true
     network_mode: host
+    environment:
+      TZ: "${TZ}"
     labels:
       - "com.centurylinklabs.watchtower.enable=false"
     volumes:
@@ -90,6 +117,8 @@ services:
     container_name: mqtt
     image: eclipse-mosquitto:latest
     restart: unless-stopped
+    environment:
+      TZ: "${TZ}"
     ports:
       - "1883:1883"
       - "9001:9001"
@@ -104,6 +133,8 @@ services:
     container_name: adguardhome
     image: adguard/adguardhome:latest
     restart: unless-stopped
+    environment:
+      TZ: "${TZ}"
     ports:
       - "53:53/tcp"
       - "53:53/udp"
@@ -124,6 +155,7 @@ services:
     image: vaultwarden/server:latest
     restart: unless-stopped
     environment:
+      TZ: "${TZ}"
       SIGNUPS_ALLOWED: "${SIGNUPS_ALLOWED}"
       WEBSOCKET_ENABLED: "true"
       DOMAIN: "https://vault.${DOMAIN}"
@@ -136,6 +168,8 @@ services:
     container_name: npm
     image: jc21/nginx-proxy-manager:latest
     restart: unless-stopped
+    environment:
+      TZ: "${TZ}"
     labels:
       - "com.centurylinklabs.watchtower.enable=false"
     ports:
@@ -160,6 +194,7 @@ services:
     volumes:
       - "${DOCKER_ROOT}/step-ca:/home/step"
     environment:
+      TZ: "${TZ}"
       DOCKER_STEPCA_INIT_NAME: "Sovereign CA"
       DOCKER_STEPCA_INIT_DNS_NAMES: "localhost,step-ca,${STEP_CA_DNS_IP}"
       DOCKER_STEPCA_INIT_PASSWORD: "${STEPCA_PASSWORD}"
@@ -202,7 +237,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      - "GLANCES_OPT: -w"
+      TZ: "${TZ}"
+      GLANCES_OPT: "-w"
 
   nextcloud-db:
     image: mariadb:10.11
@@ -220,6 +256,7 @@ services:
     volumes:
       - "${DOCKER_ROOT}/nextcloud/db:/var/lib/mysql"
     environment:
+      TZ: "${TZ}"
       MYSQL_ROOT_PASSWORD: "${NEXTCLOUD_DB_ROOT_PASSWORD}"
       MYSQL_PASSWORD: "${NEXTCLOUD_DB_PASSWORD}"
       MYSQL_DATABASE: "${NEXTCLOUD_DB_NAME}"
@@ -229,6 +266,10 @@ services:
     image: redis:alpine
     container_name: nextcloud-redis
     restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    environment:
+      TZ: "${TZ}"
     networks:
       - nextcloud-internal
 
@@ -250,23 +291,23 @@ services:
     volumes:
       - "${DOCKER_ROOT}/nextcloud/data:/var/www/html"
     environment:
+      TZ: "${TZ}"
       MYSQL_PASSWORD: "${NEXTCLOUD_DB_PASSWORD}"
       MYSQL_DATABASE: "${NEXTCLOUD_DB_NAME}"
       MYSQL_USER: "${NEXTCLOUD_DB_USER}"
-      MYSQL_HOST: nextcloud-db
-      REDIS_HOST: nextcloud-redis
+      MYSQL_HOST: "nextcloud-db"
+      REDIS_HOST: "nextcloud-redis"
       NEXTCLOUD_TRUSTED_DOMAINS: "${NEXTCLOUD_TRUSTED_DOMAINS}"
       MAIL_FROM_ADDRESS: "${NEXTCLOUD_MAIL_FROM_ADDRESS}"
       MAIL_DOMAIN: "${NEXTCLOUD_MAIL_DOMAIN}"
       SMTP_HOST: "${NEXTCLOUD_MAIL_SMTPHOST}"
       SMTP_PORT: "${NEXTCLOUD_MAIL_SMTPPORT}"
       SMTP_SECURE: "${NEXTCLOUD_MAIL_SMTPSECURE}"
-      SMTP_AUTHTYPE: LOGIN
+      SMTP_AUTHTYPE: "LOGIN"
       SMTP_AUTH: "${NEXTCLOUD_MAIL_SMTPAUTH}"
       SMTP_NAME: "${NEXTCLOUD_MAIL_SMTPNAME}"
       SMTP_PASSWORD: "${NEXTCLOUD_MAIL_SMTPPASSWORD}"
 
-  # --- Communication Services ---
   coturn:
     image: coturn/coturn:latest
     container_name: coturn
@@ -277,9 +318,10 @@ services:
       - "3478:3478/tcp"
       - "3478:3478/udp"
     environment:
-      - TURN_SECRET=${COTUR_SECRET}
-      - TURN_SERVER_NAME=turn.${DOMAIN}
-      - TURN_REALM=turn.${DOMAIN}
+      TZ: "${TZ}"
+      TURN_SECRET: "${COTUR_SECRET}"
+      TURN_SERVER_NAME: "turn.${DOMAIN}"
+      TURN_REALM: "turn.${DOMAIN}"
     command:
       - --log-file=stdout
       - --listening-port=3478
@@ -290,7 +332,6 @@ services:
       - --stale-nonce
       - --no-stdout-log
 
-  # --- Nextcloud High Performance Backend ---
   notify-push:
     image: nextcloud:stable
     container_name: notify-push
@@ -300,15 +341,13 @@ services:
       - nextcloud-db
       - nextcloud-redis
     environment:
+      TZ: "${TZ}"
       PORT: "7867"
       NEXTCLOUD_URL: "https://nextcloud.${DOMAIN}"
     volumes:
       - "${DOCKER_ROOT}/nextcloud/data:/var/www/html"
-    #    entrypoint: ["tail", "-f", "/dev/null"]
     entrypoint: [ "/var/www/html/custom_apps/notify_push/bin/aarch64/notify_push" ]
     command: [ "/var/www/html/config/config.php" ]
-    #    entrypoint: /bin/sh
-    #    command: -c "/var/www/html/custom_apps/notify_push/bin/aarch64/notify_push /var/www/html/config/config.php"
     networks:
       - pi-services
       - nextcloud-internal
@@ -324,7 +363,7 @@ services:
     ports:
       - "7575:7575"
     environment:
-      - TZ="${TZ}"
+      TZ: "${TZ}"
     networks:
       - pi-services
 
@@ -335,6 +374,7 @@ services:
     networks:
       - pi-services
     environment:
+      TZ: "${TZ}"
       MYSQL_ROOT_PASSWORD: "${NEXTCLOUD_DB_ROOT_PASSWORD}"
       MYSQL_PASSWORD: "${FORGEJO_DB_PASSWORD}"
       MYSQL_DATABASE: "${FORGEJO_DB_NAME}"
@@ -353,17 +393,18 @@ services:
     networks:
       - pi-services
     environment:
-      - USER=git
-      - USER_UID=1000
-      - USER_GID=1000
-      - FORGEJO__database__DB_TYPE=mysql
-      - FORGEJO__database__HOST=forgejo-db:3306
-      - FORGEJO__database__NAME=${FORGEJO_DB_NAME}
-      - FORGEJO__database__USER=${FORGEJO_DB_USER}
-      - FORGEJO__database__PASSWD="${FORGEJO_DB_PASSWORD}"
-      - FORGEJO__server__DOMAIN=${DOMAIN}
-      - FORGEJO__server__ROOT_URL=https://git.${DOMAIN}
-      - FORGEJO__server__HTTP_PORT=3000
+      TZ: "${TZ}"
+      USER: "git"
+      USER_UID: "1000"
+      USER_GID: "1000"
+      FORGEJO__database__DB_TYPE: "mysql"
+      FORGEJO__database__HOST: "forgejo-db:3306"
+      FORGEJO__database__NAME: "${FORGEJO_DB_NAME}"
+      FORGEJO__database__USER: "${FORGEJO_DB_USER}"
+      FORGEJO__database__PASSWD: "${FORGEJO_DB_PASSWORD}"
+      FORGEJO__server__DOMAIN: "${DOMAIN}"
+      FORGEJO__server__ROOT_URL: "https://git.${DOMAIN}"
+      FORGEJO__server__HTTP_PORT: "3000"
     labels:
       - "com.centurylinklabs.watchtower.enable=false"
     volumes:
@@ -376,8 +417,9 @@ services:
     image: bbernhard/signal-cli-rest-api:latest
     container_name: signal-api
     environment:
-      - MODE=json-rpc
-      - SIGNAL_CLI_API_PASSWORD="${SIGNAL_CLI_API_PASSWORD}"
+      TZ: "${TZ}"
+      MODE: "json-rpc"
+      SIGNAL_CLI_API_PASSWORD: "${SIGNAL_CLI_API_PASSWORD}"
     ports:
       - "8090:8080"
     volumes:
@@ -389,28 +431,31 @@ services:
   # directly on the Raspberry Pi for small, private groups.
   # Note: For large communities (1000+ users), an external Synapse node is recommended.
   #
-  #  matrix:
-  #    image: matrixconduit/matrix-conduit:latest
-  #    container_name: matrix
-  #    restart: unless-stopped
-  #    environment:
-  #      CONDUIT_SERVER_NAME: "matrix.${DOMAIN}"
-  #      CONDUIT_DATABASE_BACKEND: "rocksdb"
-  #      CONDUIT_ALLOW_REGISTRATION: "false"
-  #    volumes:
-  #      - "${DOCKER_ROOT}/matrix:/var/lib/matrix-conduit"
-  #    ports:
-  #      - "6167:6167"
-  #    networks:
-  #      - pi-services
+  # matrix:
+  #   image: matrixconduit/matrix-conduit:latest
+  #   container_name: matrix
+  #   restart: unless-stopped
+  #   environment:
+  #     TZ: "${TZ}"
+  #     CONDUIT_SERVER_NAME: "matrix.${DOMAIN}"
+  #     CONDUIT_DATABASE_BACKEND: "rocksdb"
+  #     CONDUIT_ALLOW_REGISTRATION: "false"
+  #   volumes:
+  #     - "${DOCKER_ROOT}/matrix:/var/lib/matrix-conduit"
+  #   ports:
+  #     - "6167:6167"
+  #   networks:
+  #     - pi-services
 
   netbox-db:
     container_name: netbox-db
     image: postgres:15-alpine
-    # PostgreSQL backend for Netbox infrastructure management
     restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
     env_file: .env
     environment:
+      TZ: "${TZ}"
       POSTGRES_DB: "${NETBOX_DB_NAME}"
       POSTGRES_USER: "${NETBOX_DB_USER}"
       POSTGRES_PASSWORD: "${NETBOX_DB_PASSWORD}"
@@ -422,8 +467,11 @@ services:
   netbox-redis:
     container_name: netbox-redis
     image: redis:7-alpine
-    # Redis instance for Netbox caching and queuing
     restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    environment:
+      TZ: "${TZ}"
     networks:
       - pi-services
 
@@ -441,6 +489,7 @@ services:
     ports:
       - "8085:8080"
     environment:
+      TZ: "${TZ}"
       API_TOKEN_PEPPERS: "${NETBOX_API_TOKEN_PEPPERS}"
       SECRET_KEY: "${NETBOX_SECRET_KEY}"
       DB_NAME: "${NETBOX_DB_NAME}"
@@ -452,7 +501,6 @@ services:
     networks:
       - pi-services
 
-
   nmap-scanner:
     build:
       context: .
@@ -460,8 +508,6 @@ services:
     container_name: nmap-scanner
     volumes:
       - .:/app
-    #    networks:
-    #      - default
     network_mode: host
     cap_add:
       - NET_RAW
@@ -474,25 +520,25 @@ services:
     image: lscr.io/linuxserver/unifi-network-application:latest
     restart: unless-stopped
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=${TZ}
-      - MONGO_USER=unifi
-      - MONGO_PASS=${NETBOX_DB_PASSWORD} # Hergebruik je bestaande veilige pass of maak een nieuwe .env variabele
-      - MONGO_HOST=unifi-db
-      - MONGO_PORT=27017
-      - MONGO_DBNAME=unifi
+      TZ: "${TZ}"
+      PUID: "1000"
+      PGID: "1000"
+      MONGO_USER: "unifi"
+      MONGO_PASS: "${NETBOX_DB_PASSWORD}"
+      MONGO_HOST: "unifi-db"
+      MONGO_PORT: "27017"
+      MONGO_DBNAME: "unifi"
     volumes:
       - "${DOCKER_ROOT}/unifi/config:/config"
     ports:
-      - "8444:8443" # Web GUI (Aangepast naar 8444 om conflicten te vermijden)
-      - "3479:3478/udp" # STUN
-      - "10080:8080" # Device inform (Aangepast naar 10080 omdat AdGuard al op 8080 zit)
-      - "1900:1900/udp" # L2 Discovery
-      - "8843:8843" # HTTPS Portal
-      - "8880:8880" # HTTP Portal
-      - "6789:6789" # Mobile throughput test
-      - "5514:5514/udp" # Remote syslog
+      - "8444:8443"
+      - "3479:3478/udp"
+      - "10080:8080"
+      - "1900:1900/udp"
+      - "8843:8843"
+      - "8880:8880"
+      - "6789:6789"
+      - "5514:5514/udp"
     depends_on:
       - unifi-db
     networks:
@@ -502,11 +548,28 @@ services:
     container_name: unifi-db
     image: docker.io/mongo:7.0
     restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    environment:
+      TZ: "${TZ}"
     volumes:
       - "${DOCKER_ROOT}/unifi/db:/data/db"
       - "${DOCKER_ROOT}/unifi/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro"
     networks:
       - pi-services
+
+  garage_daemon:
+    image: dxflrs/garage:v0.9.1
+    container_name: garage_daemon
+    restart: always
+    network_mode: host
+    environment:
+      TZ: "${TZ}"
+      GARAGE_RPC_SECRET: "${GARAGE_RPC_SECRET}"
+    volumes:
+      - "${DOCKER_ROOT}/${GARAGE_ROOT}/garage.toml:/etc/garage.toml:ro"
+      - "${DOCKER_ROOT}/${GARAGE_ROOT}/meta:/var/lib/garage/meta"
+      - "${DOCKER_ROOT}/${GARAGE_ROOT}/data:/var/lib/garage/data"
 
 networks:
   pi-services:

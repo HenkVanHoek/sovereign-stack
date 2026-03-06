@@ -1,0 +1,21 @@
+[Unit]
+Description=Rclone Mount S3 Snapshots for Frigate
+Before=docker.service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hvhoek
+Group=hvhoek
+ExecStartPre=/usr/bin/sudo /usr/bin/chown -R hvhoek:hvhoek /mnt/s3_frigate_snapshots
+ExecStart=/usr/bin/rclone mount s3-storage:frigate-snapshots /mnt/s3_frigate_snapshots \
+    --vfs-cache-mode writes \
+    --allow-other \
+    --config /home/hvhoek/.config/rclone/rclone.conf
+ExecStop=/bin/fusermount -uz /mnt/s3_frigate_snapshots
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

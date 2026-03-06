@@ -78,12 +78,12 @@ Ensure Nginx Proxy Manager "Advanced" configuration includes the required CORS h
 Carriage Return (`\r`) characters from Windows editors cause syntax errors in Bash. While the stack's loader attempts to strip these, manual edits can still introduce them.
 
 ### Diagnosis
-Check for `^M` at the end of lines: 
+Check for `^M` at the end of lines:
 
     cat -v .env
 
 ### Solution
-Strip carriage returns: 
+Strip carriage returns:
 
     sed -i 's/\r$//' ${DOCKER_ROOT}/.env*
 
@@ -131,7 +131,7 @@ When running `restore_stack.sh`, the SQL import might fail with "Connection Refu
 The MariaDB container is either not running or hasn't finished its internal initialization.
 
 ### Fix
-1. Start the DB: 
+1. Start the DB:
 
     docker compose up -d nextcloud-db
 
@@ -183,5 +183,5 @@ Remove the ghost container manually:
     docker compose up -d nextcloud-db
 
 ---
-
-*This documentation is part of the **Sovereign Stack** project. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY. Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*
+*This documentation is part of the Sovereign Stack project.*
+*Copyright (C) 2026 Henk van Hoek. Licensed under the GNU General Public License v3.0.*

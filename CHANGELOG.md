@@ -1,23 +1,34 @@
 # Changelog
 
 All notable changes to the Sovereign Stack project will be documented in this file.
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on Keep a Changelog ([https://keepachangelog.com/en/1.1.0/](https://keepachangelog.com/en/1.1.0/)),
+and this project adheres to Semantic Versioning ([https://semver.org/spec/v2.0.0.html](https://semver.org/spec/v2.0.0.html)).
+
 ## [4.3.0] - 2026-02-23
 ### Added
 - **Docker Metadata Discovery:** The Infra Scanner now extracts container image names, creation dates, and port mappings via SSH.
 - **Rich NetBox Integration:** Containers are now synchronized to NetBox as Virtual Machines within dedicated Docker clusters.
 - **Markdown Documentation:** Automated generation of detailed Markdown tables in NetBox comments for each container.
-- **Cluster Mapping:** Intelligent mapping of hosts to existing NetBox clusters (e.g., `Cluster-Sovereign-Pi`).
+- **Cluster Mapping:** Intelligent mapping of hosts to existing NetBox clusters (e.g., Cluster-Sovereign-Pi).
 - **English Documentation:** Updated the main README.md and code comments to English for GitHub publication standards.
+- **S3 Storage Abstraction:** Added support for Garage S3 and Rclone FUSE mounts for off-site data resilience.
+- **New Services:** Forgejo (Git), Homarr (Dashboard), Signal-API, UniFi Controller, and CoTurn (STUN/TURN).
+- **Security Guardians:** Introduced the env-validator (The Sentinel) and s3-mount-fixer (The Janitor).
+- **Email Integration:** Full SMTP support for Nextcloud and Fail2ban real-time alerts.
 
 ### Changed
 - **Enhanced OctoPrint Verification:** Improved HTML title checks to prevent false-positive detection on proxy and NVR services.
-- **Network Logic:** Migrated the Infra Scanner to the `pi-services` Docker network for direct internal API access to NetBox.
+- **Network Logic:** Migrated the Infra Scanner to the pi-services Docker network for direct internal API access to NetBox.
+- **YAML Standard:** Migrated all services to dictionary-style (KEY: VALUE) environment variables for consistency.
+- **Timezone Sync:** Enforced ${TZ} variable across all stack containers.
+- **Watchtower Policy:** Applied watchtower.enable=false labels to all database-driven services.
 
 ### Fixed
-- **API Endpoint Error:** Resolved the `'Endpoint' object has no attribute 'cluster_types'` error by correcting the pynetbox virtualization path.
-- **Resource Busy Error:** Fixed issues where `.env` files were locked during `docker cp` operations by utilizing native Docker volumes and environment loading.
+- **API Endpoint Error:** Resolved the 'Endpoint' object has no attribute 'cluster_types' error by correcting the pynetbox virtualization path.
+- **Resource Busy Error:** Fixed issues where .env files were locked during docker cp operations by utilizing native Docker volumes and environment loading.
+
+### Removed
+- **Prosody:** Removed due to ARM architecture limitations and UI management complexity.
 
 ---
 ## [4.2.0] - 2026-02-22 "The Discovery Update"

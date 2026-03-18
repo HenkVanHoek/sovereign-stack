@@ -1,14 +1,35 @@
 #!/usr/bin/env python3
-"""
 # ==============================================================================
-# File: check_netbox_api.py
-# Part of the sovereign-stack project.
-# Version: See version.py
-#
 # Sovereign Stack - NetBox API Debugger
-# Validates connectivity, authorization, and data payload structure
-# between the infra-scanner and the NetBox instance.
+# ==============================================================================
 #
+# DESCRIPTION:
+# Validates connectivity, authorization, and data payload structure between
+# the infra-scanner and the NetBox instance.
+#
+# WHAT IT DOES:
+# 1. Tests basic connectivity to NetBox API
+# 2. Verifies read access to Virtualization objects
+# 3. Shows example payload that would be sent during sync
+#
+# DEPENDENCIES:
+#    - pynetbox, requests, python-dotenv
+#
+# CONFIGURATION:
+#    See .env for:
+#    - NETBOX_URL: Full URL of NetBox instance
+#    - NETBOX_API_TOKEN: API token for authentication
+#
+# OUTPUT:
+#    - Detailed debug logging to console
+#    - Shows connection status and authorization results
+#
+# USAGE:
+#    ./run_task.sh check_netbox_api.py
+#    # Or directly:
+#    python3 check_netbox_api.py
+#
+# ==============================================================================
 # Copyright (C) 2026 Henk van Hoek
 #
 # This program is free software: you can redistribute it and/or modify
@@ -22,9 +43,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
+# along with this program.  If not, see https://www.gnu.org/licenses.
 # ==============================================================================
-"""
 
 import os
 import logging

@@ -1,13 +1,41 @@
 #!/usr/bin/env python3
-"""
 # ==============================================================================
-# File: seed_netbox.py
-# Part of the sovereign-stack project.
-# Version: See version.py
-#
 # Sovereign Stack - Network Seeding Utility
-# Processes Nmap scan data and creates 'Staged' devices in NetBox.
+# ==============================================================================
 #
+# DESCRIPTION:
+# Processes Nmap scan data and creates 'Staged' devices in NetBox for
+# devices that are discovered but not yet registered.
+#
+# WHAT IT DOES:
+# 1. Runs Nmap ARP scans on configured subnets
+# 2. Creates required NetBox objects (Site, Role, Manufacturer, Device Type)
+# 3. For each discovered MAC:
+#    - Checks if device already exists
+#    - Creates new device with temp name (New-Device-XXXX)
+#    - Creates interface and assigns IP address
+#    - Flags duplicate IPs for review
+#
+# DEPENDENCIES:
+#    - pynetbox, python-dotenv
+#    - nmap (system package)
+#
+# CONFIGURATION:
+#    See .env for:
+#    - NETBOX_URL: Full URL of NetBox instance
+#    - NETBOX_API_TOKEN: API token for authentication
+#
+#    Local:
+#    - subnets list (line 74): Add your network subnets
+#
+# OUTPUT:
+#    - Creates staged devices in NetBox
+#    - Console logging of seeding progress
+#
+# USAGE:
+#    ./run_task.sh seed_netbox.py
+#
+# ==============================================================================
 # Copyright (C) 2026 Henk van Hoek
 #
 # This program is free software: you can redistribute it and/or modify
@@ -21,9 +49,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
+# along with this program.  If not, see https://www.gnu.org/licenses.
 # ==============================================================================
-"""
 
 import os
 import pynetbox

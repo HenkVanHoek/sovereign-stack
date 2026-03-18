@@ -1,18 +1,39 @@
 #!/usr/bin/env python3
-"""
 # ==============================================================================
-# File: import_inventory.py
-# Part of the sovereign-stack project.
-# Version: See version.py
-#
 # Sovereign Stack - NetBox Inventory Importer
-# This script automates the registration of Docker services into NetBox.
-# It extracts service names and images from docker-compose.yaml and
-# synchronizes them as Virtual Machines with custom fields.
-# This python script together with import_inventory.py is executed via a crontab job:
-# 0 1 * * * cd /home/$USER/docker && ./run_task.sh import_inventory.py >>
-# ...cron.log 2>&1 && ./run_task.sh infra_scanner.py >> ...cron.log 2>&1
+# ==============================================================================
 #
+# DESCRIPTION:
+# Extracts Docker service definitions from docker-compose.yaml and
+# synchronizes them as Virtual Machines in NetBox with custom fields.
+#
+# WHAT IT DOES:
+# 1. Validates safety guards (not root, path exists, verify_env.sh passes)
+# 2. Reads docker-compose.yaml to extract service names and images
+# 3. Creates/updates Virtual Machines in NetBox
+# 4. Sets custom fields for docker_image and docker_port
+# 5. Adds Markdown documentation in VM comments
+#
+# DEPENDENCIES:
+#    - pynetbox, yaml, python-dotenv
+#    - docker (system package for compose parsing)
+#
+# CONFIGURATION:
+#    See .env for:
+#    - NETBOX_URL: Full URL of NetBox instance
+#    - NETBOX_API_TOKEN: API token for authentication
+#
+# OUTPUT:
+#    - NetBox Virtual Machine records
+#    - Console logging of import progress
+#
+# USAGE:
+#    ./run_task.sh import_inventory.py
+#
+# SCHEDULED:
+#    Via cron: 0 1 * * * cd /home/$USER/docker && ./run_task.sh import_inventory.py
+#
+# ==============================================================================
 # Copyright (C) 2026 Henk van Hoek
 #
 # This program is free software: you can redistribute it and/or modify
@@ -26,9 +47,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
+# along with this program.  If not, see https://www.gnu.org/licenses.
 # ==============================================================================
-"""
 
 import os
 import sys

@@ -1,12 +1,45 @@
 #!/usr/bin/env python3
-"""
 # ==============================================================================
-# File: bulk_rename_from_nmap.py
-# Part of the sovereign-stack project.
-# Version: See version.py
-#
 # Sovereign Stack - Bulk Device Renamer
+# ==============================================================================
 #
+# DESCRIPTION:
+# Renames placeholder devices in NetBox based on discovered hostnames.
+# Reads from nmap_flat.txt (format: hostname;ip;mac) and updates
+# devices with temporary names to their discovered hostnames.
+#
+# WHAT IT DOES:
+# 1. Reads nmap_flat.txt for hostname/ip/mac mappings
+# 2. Finds devices with temporary names (New-Device-XXXX)
+# 3. Updates device names to discovered hostnames
+# 4. Assigns primary IP addresses where missing
+# 5. Handles duplicates by appending MAC suffix
+#
+# INPUT:
+#    nmap_flat.txt - Semicolon-separated: hostname;ip;mac
+#
+# DEPENDENCIES:
+#    - pynetbox, python-dotenv
+#
+# CONFIGURATION:
+#    See .env for:
+#    - NETBOX_URL: Full URL of NetBox instance
+#    - NETBOX_API_TOKEN: API token for authentication
+#
+# OUTPUT:
+#    - Console output showing renamed devices
+#
+# USAGE:
+#    # 1. Run nmap scan first
+#    nmap -sn -PR 192.168.178.0/24 > nmap_flat.txt
+#
+#    # 2. Format the output
+#    # (manual step to create hostname;ip;mac format)
+#
+#    # 3. Run the renamer
+#    ./run_task.sh bulk_rename_from_nmap.py
+#
+# ==============================================================================
 # Copyright (C) 2026 Henk van Hoek
 #
 # This program is free software: you can redistribute it and/or modify
@@ -20,9 +53,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
+# along with this program.  If not, see https://www.gnu.org/licenses.
 # ==============================================================================
-"""
 
 import os
 import pynetbox

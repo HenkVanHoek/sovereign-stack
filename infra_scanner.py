@@ -1,20 +1,41 @@
 #!/usr/bin/env python3
-"""
 # ==============================================================================
-# File: infra_scanner.py
-# Part of the sovereign-stack project.
-# Version: See version.py
-#
 # Sovereign Stack - Infrastructure Scanner
-# Scans hosts (Linux/Windows/Synology) via SSH or API to collect:
-# - Virtual Machines (VirtualBox)
-# - Docker Containers
-# - Host Disk Usage
-# Syncs results to NetBox as Device comments.
-# This python script together with import_inventory.py is executed via a crontab job:
-# 0 1 * * * cd /home/$USER/docker && ./run_task.sh import_inventory.py >>
-# ...cron.log 2>&1 && ./run_task.sh infra_scanner.py >> ...cron.log 2>&1
-
+# ==============================================================================
+#
+# DESCRIPTION:
+# Scans remote hosts (Linux/Windows/Synology) via SSH or API to collect
+# infrastructure metadata and syncs results to NetBox as Device comments.
+#
+# WHAT IT DOES:
+# 1. Scans VirtualBox VMs on remote hosts
+# 2. Collects Docker container metadata (ports, images, URLs)
+# 3. Gathers host disk usage information
+# 4. Maps hosts to NetBox clusters based on NETBOX_CLUSTER_MAPPING
+# 5. Creates/updates Virtual Machines in NetBox with detailed comments
+#
+# DEPENDENCIES:
+#    - pynetbox, requests, paramiko, urllib3, python-dotenv
+#
+# CONFIGURATION:
+#    See .env for:
+#    - NETBOX_URL: Full URL of NetBox instance
+#    - NETBOX_API_TOKEN: API token for authentication
+#    - NETBOX_CLUSTER_MAPPING: Comma-separated IP:cluster pairs
+#    - REMOTE_HOSTS: Space-separated list of SSH hosts
+#
+# OUTPUT:
+#    - NetBox Virtual Machine updates
+#    - Detailed Markdown comments in NetBox
+#
+# USAGE:
+#    # Cronjob (see crontab for timing):
+#    ./run_task.sh infra_scanner.py
+#
+# SCHEDULED:
+#    Via cron: 0 1 * * * cd /home/$USER/docker && ./run_task.sh infra_scanner.py
+#
+# ==============================================================================
 # Copyright (C) 2026 Henk van Hoek
 #
 # This program is free software: you can redistribute it and/or modify
@@ -28,9 +49,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
+# along with this program.  If not, see https://www.gnu.org/licenses.
 # ==============================================================================
-"""
 
 import os
 import json

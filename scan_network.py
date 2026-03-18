@@ -1,14 +1,41 @@
 #!/usr/bin/env python3
-"""
 # ==============================================================================
-# File: scan_network.py
-# Part of the sovereign-stack project.
-# Version: See version.py
-#
 # Sovereign Stack - Network Discovery Scanner
-# Performs Nmap ARP scans across the Main Network and secondary segments
-# to synchronize discovered hosts with NetBox.
+# ==============================================================================
 #
+# DESCRIPTION:
+# Performs Nmap ARP scans across configured subnets to discover hosts
+# and synchronize their MAC/IP information with NetBox IPAM.
+#
+# WHAT IT DOES:
+# 1. Acquires exclusive lock to prevent concurrent scans
+# 2. Runs Nmap ARP scan on configured subnets
+# 3. Parses output to extract IP/MAC pairs
+# 4. For each discovered MAC:
+#    - Looks up interface in NetBox DCIM
+#    - Updates or creates IPAM entry with status and description
+#    - Logs unregistered MACs for manual review
+#
+# DEPENDENCIES:
+#    - pynetbox, python-dotenv
+#    - nmap (system package)
+#
+# CONFIGURATION:
+#    See .env for:
+#    - NETBOX_URL: Full URL of NetBox instance
+#    - NETBOX_API_TOKEN: API token for authentication
+#
+#    Local:
+#    - subnets list (line 110): Add your network subnets
+#
+# OUTPUT:
+#    - Console logging of discovered devices
+#    - NetBox IPAM synchronization
+#
+# USAGE:
+#    ./run_task.sh scan_network.py
+#
+# ==============================================================================
 # Copyright (C) 2026 Henk van Hoek
 #
 # This program is free software: you can redistribute it and/or modify
@@ -22,9 +49,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
+# along with this program.  If not, see https://www.gnu.org/licenses.
 # ==============================================================================
-"""
 
 import os
 import sys

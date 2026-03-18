@@ -2,6 +2,30 @@
 # Part of the sovereign-stack project.
 # Version: See version.py
 #
+# ==============================================================================
+# Sovereign Stack - Pre-Commit Hooks Configuration
+# ==============================================================================
+#
+# DESCRIPTION:
+# Automated integrity checks that run before each git commit to ensure
+# code quality and prevent common issues from entering the repository.
+#
+# WHAT IT DOES:
+# 1. Fixes trailing whitespace and ensures files end with newlines
+# 2. Validates YAML and JSON syntax
+# 3. Prevents large files from being committed
+# 4. Formats Python code (Black) and removes unused imports
+# 5. Lints Python (flake8) and Bash (ShellCheck) code
+#
+# INSTALLATION:
+#    pip install pre-commit
+#    pre-commit install
+#
+# USAGE:
+#    pre-commit run --all-files  # Run all hooks
+#    pre-commit run              # Run on staged files
+#
+# ==============================================================================
 # Copyright (C) 2026 Henk van Hoek
 #
 # This program is free software: you can redistribute it and/or modify
@@ -15,15 +39,24 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see https://www.gnu.org/licenses/.
-#
-# Purpose: Automated Integrity Guard for Windows/Linux Cross-Platform Dev
+# along with this program.  If not, see https://www.gnu.org/licenses.
+# ==============================================================================
 
-exclude: '(^backups/|^nextcloud/|^netbox/|^step-ca/|^forgejo/|^.idea/)'
+# Exclude directories that contain generated or sensitive data
+exclude: >
+  (?x)^(
+    backups/ |
+    nextcloud/ |
+    netbox/ |
+    step-ca/ |
+    forgejo/ |
+    .idea/ |
+    .git/
+  )
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -40,14 +73,15 @@ repos:
         args: ["--remove-all-unused-imports", "--in-place"]
 
   - repo: https://github.com/psf/black
-    rev: 24.4.2
+    rev: 24.10.0
     hooks:
       - id: black
 
   - repo: https://github.com/pycqa/flake8
-    rev: 7.0.0
+    rev: 7.1.1
     hooks:
       - id: flake8
+        args: ["--max-line-length=88"]
 
   - repo: local
     hooks:

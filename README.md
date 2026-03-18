@@ -46,13 +46,24 @@ The Sovereign Stack features a **3-2-1 backup strategy** designed for disaster r
 The project follows a "Flat Root" philosophy where all logic and configuration reside within the user's home directory for easier management and version control:
 
     ~/docker/
-    ├── data/                  # Persistent volumes for all Docker containers
-    ├── scripts/               # Operational utility scripts
-    ├── backup_stack.sh        # The primary backup engine (3-2-1 strategy)
-    ├── monitor_backup.sh      # Backup verification and health monitoring
-    ├── version.py             # Single Source of Truth for versioning
-    ├── .env                   # Main environment configuration (all settings)
-    └── docker-compose.yaml    # The heart of the Sovereign Stack
+    ├── data/                     # Persistent volumes for all Docker containers
+    ├── backup_stack.sh           # The primary backup engine (3-2-1 strategy)
+    ├── monitor_backup.sh         # Backup verification and health monitoring
+    ├── restore_stack.sh          # Restore from encrypted backup
+    ├── verify_env.sh             # Environment variable validator
+    ├── wake_target.sh            # Wake-on-LAN utility
+    ├── backup-rsync.sh           # Legacy rsync backup (alternative)
+    ├── test_remote_connection.sh # Remote connection tester
+    ├── clean_stack.sh            # Maintenance and cleanup
+    ├── create_users.sh           # Bulk Matrix user creation
+    ├── check_env_consistency.sh  # Environment consistency checker
+    ├── run_task.sh               # Docker task runner
+    ├── gen_cert.sh               # SSL certificate generator
+    ├── fix-nextcloud-perms.sh    # Nextcloud permission fixer
+    ├── INSTALL.sh                # Installation wizard
+    ├── version.py                # Single Source of Truth for versioning
+    ├── .env                      # Main environment configuration
+    └── docker-compose.yaml       # The heart of the Sovereign Stack
 
 ---
 

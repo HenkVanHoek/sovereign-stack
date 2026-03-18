@@ -3,20 +3,51 @@
 # Part of the sovereign-stack project.
 # Version: See version.py
 #
-# Copyright (C) 2026 Henk van Hoek
+# ==============================================================================
+# Sovereign Stack - Docker Task Runner
+# ==============================================================================
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# DESCRIPTION:
+# Executes a Python script inside a Docker container with the Sovereign Stack
+# environment variables mounted. Useful for running maintenance tasks that need
+# access to the stack's configuration and network.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# WHAT IT DOES:
+# 1. Prevents running as root (security guard)
+# 2. Verifies .env exists
+# 3. Validates script parameter is provided
+# 4. Runs specified Python script in python:3.11-slim container with:
+#    - Current user/group mapping
+#    - Stack network (pi-services)
+#    - Mounted .env file
+#    - Writable /tmp as HOME
+#    - Pre-installed: pynetbox, python-dotenv, PyYAML
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
+# EXIT CODES:
+# Exit code from the Python script (0 = success)
+#
+# DEPENDENCIES:
+#    - docker
+#    - Python script argument
+#
+# CONFIGURATION:
+#    Reads from .env (mounted into container)
+#
+# USAGE:
+#    ./run_task.sh <script.py>
+#
+#    # Examples:
+#    ./run_task.sh infra_scanner.py
+#    ./run_task.sh import_inventory.py
+#    ./run_task.sh my_custom_script.py
+#
+# NOTE:
+#    The script is mounted at /app inside the container
+#    HOME is set to /tmp to allow pip install --user
+#
+# ==============================================================================
+
+set -u
 
 # --- Safety Guards ---
 # Check if run as root on host

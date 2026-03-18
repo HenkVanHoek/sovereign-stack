@@ -3,20 +3,57 @@
 # Part of the sovereign-stack project.
 # Version: See version.py
 #
-# Copyright (C) 2026 Henk van Hoek
+# ==============================================================================
+# Sovereign Stack - Installation Wizard
+# ==============================================================================
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# DESCRIPTION:
+# Interactive installation wizard that installs system dependencies,
+# configures the .env file, sets up SSH key authentication, and configures
+# cron automation. Run this script on a fresh system to set up the stack.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# WHAT IT DOES:
+# 1. Checks and installs system dependencies (msmtp, openssl, curl, etc.)
+# 2. Creates .env from .env.example if not present
+# 3. Interactive prompts for configuration:
+#    - DOCKER_ROOT, DOMAIN
+#    - Network/DNS settings
+#    - Backup configuration
+#    - Off-site target OS and WoL settings
+# 4. Generates COTUR_SECRET for Nextcloud Talk
+# 5. Creates/ed25519 SSH key if missing
+# 6. Copies SSH public key to off-site target
+# 7. Configures cron for automated backup (03:00) and monitoring (03:30)
+# 8. Sets secure permissions on .env and scripts
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
+# DEPENDENCIES:
+#    - apt-get (Debian/Ubuntu)
+#    - ssh, ssh-copy-id
+#    - openssl
+#
+# CONFIGURATION:
+#    Reads from/writes to:
+#    - .env.example (template)
+#    - .env (configuration)
+#    - ~/.ssh/id_ed25519* (SSH keys)
+#
+# OUTPUT:
+#    - Configured .env file
+#    - SSH key pair (~/.ssh/id_ed25519*)
+#    - Cron entries for backup automation
+#
+# USAGE:
+#    ./INSTALL.sh
+#
+#    # Run as regular user (not root)
+#    # Will prompt for sudo password when installing packages
+#
+# IMPORTANT:
+#    - Run from the sovereign-stack directory
+#    - Have off-site backup target credentials ready
+#    - Review .env after installation for additional settings
+#
+# ==============================================================================
 
 set -u
 GREEN='\033[0;32m'
@@ -69,11 +106,13 @@ update_var "EXTERNAL_DNS_NAME" "External DNS Hostname (e.g., secure.dns.freedom.
 
 # Backup Config
 update_var "BACKUP_EMAIL" "Alert email for notifications"
-update_var "BACKUP_PASSWORD" "Encryption key for AES-256 backups"
-update_var "BACKUP_RETENTION_DAYS" "How many days to keep local backups on NVMe"
-update_var "BACKUP_TARGET_IP" "Static IP of your Backup Target machine"
-update_var "BACKUP_TARGET_USER" "SSH Username on the Backup Target"
-update_var "BACKUP_TARGET_PATH" "Path on Target (Windows: /X:/Path, Linux: /home/user/bak)"
+update_var "BACKUP_ENCRYPTION_KEY" "Encryption key for AES-256 backups"
+update_var "BACKUP_LOCAL_TARGET" "Path to local backup storage (USB drive)"
+update_var "BACKUP_LOCAL_RETENTION_DAYS" "How many days to keep local backups"
+update_var "BACKUP_OFFSITE_IP" "Static IP of off-site backup target (NAS)"
+update_var "BACKUP_OFFSITE_USER" "SSH Username on the off-site backup target"
+update_var "BACKUP_OFFSITE_PATH" "Path on off-site target (Windows: /X:/Path, Linux: /home/user/bak)"
+update_var "BACKUP_OFFSITE_RETENTION_VERSIONS" "Number of backup versions to keep on off-site"
 
 # Generate COTUR_SECRET if not present
 if grep -q "COTUR_SECRET=\"\"" "$ENV_FILE" || ! grep -q "COTUR_SECRET=" "$ENV_FILE"; then
@@ -82,9 +121,18 @@ if grep -q "COTUR_SECRET=\"\"" "$ENV_FILE" || ! grep -q "COTUR_SECRET=" "$ENV_FI
     echo -e "\n${GREEN}Generated new COTUR_SECRET for Nextcloud Talk.${NC}"
 fi
 
-read -r -p "Backup Target OS (windows/linux/mac) [windows]: " target_os
-target_os=${target_os:-windows}
-sed -i "s|^BACKUP_TARGET_OS=.*|BACKUP_TARGET_OS=\"${target_os,,}\"|" "$ENV_FILE"
+read -r -p "Off-site Target OS (windows/linux/mac) [linux]: " target_os
+target_os=${target_os:-linux}
+sed -i "s|^BACKUP_OFFSITE_OS=.*|BACKUP_OFFSITE_OS=\"${target_os,,}\"|" "$ENV_FILE"
+
+read -r -p "Enable Wake-on-LAN for off-site target? (YES/NO) [YES]: " wol_enable
+wol_enable=${wol_enable:-YES}
+sed -i "s|^BACKUP_OFFSITE_WOL=.*|BACKUP_OFFSITE_WOL=\"${wol_enable^^}\"|" "$ENV_FILE"
+
+read -r -p "MAC address for off-site target (e.g., 00:11:32:A7:3E:11): " wol_mac
+if [ -n "$wol_mac" ]; then
+    sed -i "s|^BACKUP_OFFSITE_MAC=.*|BACKUP_OFFSITE_MAC=\"${wol_mac}\"|" "$ENV_FILE"
+fi
 
 # --- STAGE 3: SSH Key Setup (Modern ed25519) ---
 echo -e "\n${BLUE}Step 3: Setting up SSH Key-Based Authentication...${NC}"
@@ -93,12 +141,12 @@ if [ ! -f ~/.ssh/id_ed25519 ]; then
     ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519
 fi
 
-BACKUP_TARGET_IP_CLEAN=$(grep "^BACKUP_TARGET_IP=" "$ENV_FILE" | cut -d'"' -f2 | sed -e 's|^http://||' -e 's|^https://||')
-BACKUP_TARGET_USER_VAL=$(grep "^BACKUP_TARGET_USER=" "$ENV_FILE" | cut -d'"' -f2)
+BACKUP_OFFSITE_IP_CLEAN=$(grep "^BACKUP_OFFSITE_IP=" "$ENV_FILE" | cut -d'"' -f2 | sed -e 's|^http://||' -e 's|^https://||')
+BACKUP_OFFSITE_USER_VAL=$(grep "^BACKUP_OFFSITE_USER=" "$ENV_FILE" | cut -d'"' -f2)
 
-echo -e "Copying public key to the target..."
-echo -e "Please enter the password for ${BACKUP_TARGET_USER_VAL}@${BACKUP_TARGET_IP_CLEAN} to enable automation."
-ssh-copy-id -i ~/.ssh/id_ed25519.pub -o ConnectTimeout=10 "${BACKUP_TARGET_USER_VAL}@${BACKUP_TARGET_IP_CLEAN}"
+echo -e "Copying public key to the off-site target..."
+echo -e "Please enter the password for ${BACKUP_OFFSITE_USER_VAL}@${BACKUP_OFFSITE_IP_CLEAN} to enable automation."
+ssh-copy-id -i ~/.ssh/id_ed25519.pub -o ConnectTimeout=10 "${BACKUP_OFFSITE_USER_VAL}@${BACKUP_OFFSITE_IP_CLEAN}"
 
 # --- STAGE 4: Cron Automation ---
 echo -e "\n${BLUE}Step 4: Configuring Automation (Crontab)...${NC}"

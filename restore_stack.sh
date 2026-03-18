@@ -1,8 +1,51 @@
 #!/bin/bash
 # File: restore_stack.sh
 # Part of the sovereign-stack project.
-# Version: 4.0.0 (Sovereign Awakening)
+# Version: See version.py
 #
+# ==============================================================================
+# Sovereign Stack - Restore Script
+# ==============================================================================
+#
+# DESCRIPTION:
+# This script restores a previously made backup of the Sovereign Stack.
+# It allows you to select from available encrypted archives and restores
+# them to the original location.
+#
+# WHAT IT DOES:
+# 1. Lists available encrypted backups from the archive directory
+# 2. Prompts user to select which backup to restore
+# 3. Decrypts the backup using AES-256-CBC (using DB_PASSWORD from .backup.env)
+# 4. Extracts the tar archive to the current directory
+# 5. Imports database dumps (if present in backup)
+# 6. Corrects file ownership to the current user
+#
+# IMPORTANT NOTES:
+# - This script RESTORES data, not creates a backup!
+# - Run from the /home/$USER/docker directory
+# - You must have the correct DB_PASSWORD in .backup.env
+# - Existing files will be OVERWRITTEN by the restore
+#
+# DEPENDENCIES:
+#    - openssl (for decryption)
+#    - tar (for extraction)
+#    - docker (for database restore)
+#
+# CONFIGURATION:
+#    See .env for:
+#    - BACKUP_LOCAL_TARGET: Location of archive directory
+#    - BACKUP_ENCRYPTION_KEY: Password for decryption
+#
+# USAGE:
+#    cd /home/$USER/docker
+#    ./restore_stack.sh
+#
+# IMPORTANT:
+#    - Make sure you have a recent backup before testing restore!
+#    - Test restore in a development environment first
+#    - After restore, verify all services start correctly
+#
+# ==============================================================================
 # Copyright (C) 2026 Henk van Hoek
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,103 +59,117 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see https://www.gnu.org/licenses/.
+# along with this program.  If not, see https://www.gnu.org/licenses.
+# ==============================================================================
 
-# sovereign-stack Disaster Recovery Utility v4.0
+# shellcheck disable=SC2154
 set -u
 
-# 1. Load Environment Dynamically
+# --- 1. Environment & Path Setup ---
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 ENV_FILE="${SCRIPT_DIR}/.env"
 
-if [ -f "$ENV_FILE" ]; then
+if [[ -f "$ENV_FILE" ]]; then
     set -a
-    # shellcheck disable=SC1090
-    source <(sed 's/\r$//' "$ENV_FILE")
+    # shellcheck source=/dev/null
+    source "$ENV_FILE"
     set +a
 else
-    echo "Error: .env file not found at $ENV_FILE"
+    echo "[ERROR] .env not found in ${SCRIPT_DIR}"
     exit 1
 fi
 
-# 2. Paths & Variables
-BACKUP_DIR="${DOCKER_ROOT}/backups"
-TEMP_RESTORE="/tmp/sovereign_restore"
-DB_EXPORT_PATH="${DOCKER_ROOT}/nextcloud/nextcloud_db_export.sql"
-
-echo "--- Sovereign Stack: Disaster Recovery Utility v4.0 ---"
-
-# 3. Select Backup File
-echo "Available backups in $BACKUP_DIR:"
-find "$BACKUP_DIR" -maxdepth 1 -name "*.enc" -exec basename {} \;
-echo ""
-read -r -p "Enter the full filename of the backup to restore: " SELECTED_BACKUP
-
-FULL_PATH="${BACKUP_DIR}/${SELECTED_BACKUP}"
-
-if [ ! -f "$FULL_PATH" ]; then
-    echo "Error: File $FULL_PATH not found."
-    exit 1
-fi
-
-# 4. Decryption & Extraction
-echo "Step 1/4: Decrypting and extracting backup..."
-mkdir -p "$TEMP_RESTORE"
-
-if openssl enc -d -aes-256-cbc -salt -pbkdf2 -pass "pass:$BACKUP_PASSWORD" -in "$FULL_PATH" | \
-   tar -xvzf - -C "$TEMP_RESTORE"; then
-    echo "[OK] Decryption and extraction successful."
+# Load Version from version.py (Single Source of Truth)
+VERSION_FILE="${SCRIPT_DIR}/version.py"
+if [[ -f "$VERSION_FILE" ]]; then
+    APP_VERSION=$(grep "__version__" "$VERSION_FILE" | sed -E 's/.*["'\'']([^"'\'']+)["'\''].*/\1/')
 else
-    echo "[ERROR] Decryption failed. Is the password correct?"
-    rm -rf "$TEMP_RESTORE"
+    APP_VERSION="unknown"
+fi
+
+ARCHIVE_DIR="${BACKUP_LOCAL_TARGET}/archives"
+
+# --- 2. Identity Guard ---
+if [[ $EUID -eq 0 ]]; then
+    echo "[ERROR] This script should NOT be run with sudo directly."
     exit 1
 fi
 
-# 5. File Synchronization
-echo "Step 2/4: Syncing files to $DOCKER_ROOT..."
-sudo rsync -av "$TEMP_RESTORE/" "$DOCKER_ROOT/"
+# --- 3. Selection Logic ---
+echo "==========================================================="
+echo " Sovereign Stack: Restoration Utility v${APP_VERSION}"
+echo "==========================================================="
 
-# 6. Database Injection (Nextcloud)
-echo "Step 3/4: Restoring MariaDB database (Nextcloud)..."
-if [ -f "$DB_EXPORT_PATH" ]; then
-    if docker ps | grep -q "nextcloud-db"; then
-        docker exec -i nextcloud-db mariadb -u nextcloud -p"$NEXTCLOUD_DB_PASSWORD" nextcloud < "$DB_EXPORT_PATH"
-        echo "[OK] Database successfully imported."
+# FIX: Using find instead of ls for reliability (ShellCheck :52)
+echo "Scanning for archives in ${ARCHIVE_DIR}..."
+mapfile -t BACKUPS < <(find "${ARCHIVE_DIR}" -maxdepth 1 -name "sovereign_stack_*.enc" -printf "%T@ %p\n" | sort -rn | cut -d' ' -f2- | head -n 5)
+
+if [[ ${#BACKUPS[@]} -eq 0 ]]; then
+    echo "[ERROR] No backups found in ${ARCHIVE_DIR}"
+    exit 1
+fi
+
+echo "Available archives (latest first):"
+for i in "${!BACKUPS[@]}"; do
+    echo "  [$i] $(basename "${BACKUPS[$i]}")"
+done
+
+# FIX: Added -r to read (ShellCheck :64)
+read -r -p "Select archive index to restore [0]: " INDEX
+INDEX=${INDEX:-0}
+
+SELECTED_BACKUP="${BACKUPS[$INDEX]}"
+echo "Selected: $(basename "${SELECTED_BACKUP}")"
+echo "-----------------------------------------------------------"
+
+# --- 4. Decryption & Extraction ---
+TEMP_TAR="${SCRIPT_DIR}/temp_restored_stack.tar.gz"
+
+echo "[1/4] Decrypting archive (AES-256-CBC)..."
+if ! openssl enc -d -aes-256-cbc -salt -pbkdf2 -k "${DB_PASSWORD}" -in "${SELECTED_BACKUP}" -out "${TEMP_TAR}"; then
+    echo "[ERROR] Decryption failed. Check DB_PASSWORD in .backup.env"
+    exit 1
+fi
+
+echo "[2/4] Extracting files to ${SCRIPT_DIR}..."
+if ! sudo tar -xzvf "${TEMP_TAR}" -C "${SCRIPT_DIR}"; then
+    echo "[ERROR] Extraction failed."
+    rm -f "${TEMP_TAR}"
+    exit 1
+fi
+
+# --- 5. Database Restoration ---
+echo "[3/4] Checking for database dumps..."
+SQL_DUMP="${SCRIPT_DIR}/all_databases.sql"
+
+if [[ -f "$SQL_DUMP" ]]; then
+    echo "Local MariaDB dump found. Starting import..."
+    docker compose up -d nextcloud-db
+    echo "Waiting for database initialization (15s)..."
+    sleep 15
+
+    # FIX: Removed 'cat', using direct redirection (ShellCheck :99)
+    if ! docker exec -i nextcloud-db mariadb -u root -p"${DB_PASSWORD}" < "${SQL_DUMP}"; then
+        echo "[WARNING] Errors encountered during database import."
     else
-        echo "[WARNING] MariaDB container is not running. Start the stack first and run this script again for DB injection."
+        echo "✅ Database restored successfully."
     fi
+    sudo rm -f "${SQL_DUMP}"
 else
-    echo "[SKIP] No SQL dump found in the backup archive."
+    echo "No database dump found in archive. Skipping."
 fi
 
-# 7. Permission Correction (Surgical Approach)
-echo "Step 4/4: Correcting file permissions..."
+# --- 6. Finalization & Permissions ---
+echo "[4/4] Finalizing restoration and correcting permissions..."
+rm -f "${TEMP_TAR}"
 
-# 7.1 General Ownership (User)
-sudo chown -R "$USER:$USER" "$DOCKER_ROOT"
+# Restore ownership to local user (Sovereign Standard)
+sudo chown -R "${USER}:${USER}" "${SCRIPT_DIR}"
 
-# 7.2 Nextcloud Data (www-data: 33)
-if [ -d "${DOCKER_ROOT}/nextcloud/data" ]; then
-    echo "Fixing Nextcloud permissions..."
-    sudo chown -R 33:33 "${DOCKER_ROOT}/nextcloud/data"
-fi
-
-# 7.3 MariaDB (mysql: 999)
-if [ -d "${DOCKER_ROOT}/nextcloud/db" ]; then
-    echo "Fixing Database permissions..."
-    sudo chown -R 999:999 "${DOCKER_ROOT}/nextcloud/db"
-fi
-
-# 7.4 Matrix/Conduit (conduit: 100 - check specific UID if customized)
-if [ -d "${DOCKER_ROOT}/matrix/db" ]; then
-    echo "Fixing Matrix permissions..."
-    sudo chown -R 100:100 "${DOCKER_ROOT}/matrix/db"
-fi
-
-# 8. Cleanup
-echo "Cleaning up temporary files..."
-rm -rf "$TEMP_RESTORE"
-
-echo "---"
-echo "SUCCESS: Recovery procedure complete."
-echo "Note: You might need to restart the stack: docker compose up -d"
+echo "==========================================================="
+echo "✅ Restoration of $(basename "${SELECTED_BACKUP}") Complete!"
+echo "==========================================================="
+echo "Next steps:"
+echo " 1. Verify your .env files."
+echo " 2. Restart the stack: docker compose up -d --force-recreate"
+echo "==========================================================="

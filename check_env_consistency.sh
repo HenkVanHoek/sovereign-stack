@@ -1,23 +1,49 @@
 #!/bin/bash
 # File: check_env_consistency.sh
 # Part of the sovereign-stack project.
-# Purpose: Verify consistency between .env, .env.example, and verify_env.sh
-# Version: See version.py
+# ==============================================================================
+# Sovereign Stack - Environment Consistency Checker
+# ==============================================================================
 #
-# Copyright (C) 2026 Henk van Hoek
+# DESCRIPTION:
+# Compares environment variables between .env, .env.example, and verify_env.sh
+# to ensure configuration consistency across the stack. Helps identify missing
+# variables that should be documented in all three places.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# WHAT IT DOES:
+# 1. Verifies all three files exist (.env, .env.example, verify_env.sh)
+# 2. Extracts all variable names from .env
+# 3. For each variable, checks:
+#    - Is it present in .env.example?
+#    - Is it validated in verify_env.sh?
+# 4. Reports summary of missing or undocumented variables
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# OUTPUT FORMAT:
+#    Table showing variable status in each file:
+#    Variable Name | .env.example | verify_env.sh
+#    -------------------------------------------------
+#    TZ           | OK          | OK
+#    DOMAIN       | OK          | OK
+#    ...
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
+# EXIT CODES:
+# 0 = All variables consistent
+# 1 = Missing variables found
+#
+# DEPENDENCIES:
+#    - grep, awk (standard Unix tools)
+#
+# CONFIGURATION:
+#    No configuration needed - reads from current directory
+#
+# USAGE:
+#    ./check_env_consistency.sh
+#
+# RECOMMENDED:
+#    Run after adding new environment variables to ensure
+#    they are properly documented in .env.example and verified
+#
+# ==============================================================================
 
 set -u
 
@@ -84,5 +110,5 @@ echo ""
 if [ $MISSING_EXAMPLE -eq 0 ] && [ $MISSING_VERIFY -eq 0 ]; then
     echo -e "${GREEN}[SUCCESS] All variables are consistent!${NC}"
 else
-    echo -e "${YELLOW}[ADVICE] Update your files in PyCharm to ensure full stack integrity.${NC}"
+    echo -e "${YELLOW}[RECOMMENDATION] Update your files to ensure full stack integrity.${NC}"
 fi

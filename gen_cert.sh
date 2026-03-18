@@ -1,23 +1,53 @@
 #!/bin/bash
-# Sovereign Certificate Generator for Step-CA v2.4
-# Part of the sovereign-stack project.
+# ==============================================================================
+# Sovereign Stack - SSL Certificate Generator
+# ==============================================================================
 #
-# Copyright (C) 2026 Henk van Hoek
+# DESCRIPTION:
+# Generates SSL/TLS certificates using the Step-CA container. Prompts for
+# subdomain prefix and certificate duration, then copies the generated
+# certificate and key files to the host filesystem.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# WHAT IT DOES:
+# 1. Loads configuration from .env
+# 2. Prompts for subdomain prefix (e.g., 'vault' for vault.example.com)
+# 3. Prompts for certificate duration (e.g., 8760h for 1 year)
+# 4. Runs step ca certificate inside step-ca container
+# 5. Copies .crt and .key files from container to host
+# 6. Sets correct ownership to current user
+# 7. Removes temporary files from container
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
+# OUTPUT FILES:
+#    - <subdomain>.<DOMAIN>.crt (certificate)
+#    - <subdomain>.<DOMAIN>.key (private key)
 #
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
-
-# sovereign-stack Certificate Generator logic
+# DEPENDENCIES:
+#    - docker
+#    - step-ca container must be running
+#    - openssl (for key generation within container)
+#
+# CONFIGURATION:
+#    See .env for:
+#    - DOMAIN: Base domain (e.g., example.com)
+#    - STEPCA_PROVISIONER_NAME: Step-CA provisioner name
+#
+# USAGE:
+#    # 1. Ensure step-ca container is running
+#    docker compose up -d step-ca
+#
+#    # 2. Run certificate generator
+#    ./gen_cert.sh
+#
+#    # 3. Enter subdomain when prompted (e.g., vault)
+#    # 4. Enter duration (e.g., 8760h for 1 year)
+#
+# EXAMPLE:
+#    Domain: example.com
+#    Subdomain: vault
+#    Duration: 8760h
+#    Creates: vault.example.com.crt and vault.example.com.key
+#
+# ==============================================================================
 
 set -u
 

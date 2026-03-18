@@ -1,0 +1,18 @@
+# Geheimen en configuratie
+.env
+.env.*
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# Specifiek voor jouw YAML wachtwoorden (tussen aanhalingstekens)
+# Als je specifieke files hebt met secrets:
+secrets.yml
+config/credentials.yml
+
+# Infrastructure & Git
+.git/
+.idea/
+__pycache__/
+*.pyc

@@ -1,15 +1,48 @@
 #!/bin/bash
 # File: fix-nextcloud-perms.sh
-# Part of the sovereign-stack project.
+# ==============================================================================
+# Sovereign Stack - Nextcloud Permission Fixer
+# ==============================================================================
 #
-# Copyright (C) 2026 Henk van Hoek
-# Licensed under the GNU General Public License v3.0 or later.
+# DESCRIPTION:
+# Fixes file ownership and permissions for Nextcloud directories. The web
+# server (www-data/UID 33) must own the data directory, while the host user
+# should own application files. Incorrect permissions cause sync issues.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# WHAT IT DOES:
+# 1. Loads configuration from .env
+# 2. Validates Nextcloud directory exists
+# 3. Sets ownership of entire Nextcloud directory to host user
+# 4. Overrides data directory ownership to UID 33 (www-data)
+# 5. Applies secure permissions:
+#    - Directories: 750 (rwxr-x---)
+#    - Files: 640 (rw-r-----)
+#
+# IMPORTANT:
+#    - Nextcloud app files should be owned by host user
+#    - Nextcloud data directory MUST be owned by www-data (UID 33)
+#    - Running containers may need restart after permission fix
+#
+# EXIT CODES:
+# 0 = Completed
+# 1 = Nextcloud directory not found
+#
+# DEPENDENCIES:
+#    - sudo
+#    - chown, chmod, find
+#
+# CONFIGURATION:
+#    See .env for:
+#    - DOCKER_ROOT: Path to Docker data directory
+#
+# USAGE:
+#    ./fix-nextcloud-perms.sh
+#
+#    # After running, restart Nextcloud if issues persist:
+#    docker compose restart nextcloud-app
+#
+# ==============================================================================
 
-# sovereign-stack Nextcloud Permission Fixer v2.0
 set -u
 
 # 1. Load Environment Dynamically

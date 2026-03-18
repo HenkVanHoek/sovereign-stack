@@ -3,20 +3,53 @@
 # Part of the sovereign-stack project.
 # Version: See version.py
 #
-# Copyright (C) 2026 Henk van Hoek
+# ==============================================================================
+# Sovereign Stack - Maintenance Script
+# ==============================================================================
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# DESCRIPTION:
+# Performs routine maintenance tasks: prunes unused Docker resources, fixes
+# container ownership permissions, checks disk usage, and reports available
+# OS updates.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# WHAT IT DOES:
+# 1. Prevents running as root (security guard)
+# 2. Acquires process lock to prevent concurrent execution
+# 3. Prunes Docker system (stopped containers, unused networks, dangling images)
+# 4. Fixes ownership for container data directories:
+#    - Nextcloud data (UID 33)
+#    - Nextcloud database (UID 999)
+#    - Forgejo database (UID 999)
+#    - Forgejo data (UID 1000)
+#    - NetBox database (UID 70)
+# 5. Checks disk usage and warns if above 85%
+# 6. Checks for available OS updates
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
+# EXIT CODES:
+# 0 = Completed (errors are non-fatal)
+#
+# DEPENDENCIES:
+#    - docker
+#    - sudo
+#    - verify_env.sh (called internally)
+#
+# CONFIGURATION:
+#    See .env for:
+#    - DOCKER_ROOT: Path to Docker data directory
+#
+# OUTPUT:
+#    - Docker prune results
+#    - Permission fix reports
+#    - Disk usage percentage
+#    - Count of upgradable packages
+#
+# USAGE:
+#    ./clean_stack.sh
+#
+# SCHEDULED:
+#    Can be run manually or via cron for regular maintenance
+#
+# ==============================================================================
 
 set -u
 GREEN='\033[0;32m'
@@ -30,7 +63,7 @@ if [[ $EUID -eq 0 ]]; then
     exit 1
 fi
 
-# 2. Sovereign Guard: Locking
+# 2. Process Lock Guard
 exec 300>/tmp/sovereign_clean.lock
 if ! flock -n 300; then
     echo "[INFO] Maintenance script is already running."

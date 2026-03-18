@@ -15,8 +15,48 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
+# ==============================================================================
+# Sovereign Stack - Wake-on-LAN Utility
+# ==============================================================================
+#
+# DESCRIPTION:
+# Sends a Wake-on-LAN magic packet to a target machine and polls until it
+# becomes reachable via ping. Used to wake NAS or other backup targets before
+# remote operations.
+#
+# WHAT IT DOES:
+# 1. Validates environment and required parameters
+# 2. Sends WoL magic packet via wakeonlan utility
+# 3. Polls target IP until it responds to ping
+# 4. Waits 5 seconds extra for SSH service initialization
+#
+# EXIT CODES:
+# 0 = Target successfully woken and reachable
+# 1 = Target did not respond within retry limit
+#
+# DEPENDENCIES:
+#    - wakeonlan (apt install wakeonlan)
+#    - ping (standard)
+#    - verify_env.sh (called internally)
+#
+# CONFIGURATION:
+#    Can use defaults from .env or pass parameters:
+#    - BACKUP_OFFSITE_MAC: MAC address of target
+#    - BACKUP_OFFSITE_IP: IP address of target
+#    - BACKUP_OFFSITE_MAX_RETRIES: Number of ping attempts (default: 15)
+#    - BACKUP_OFFSITE_RETRY_WAIT: Seconds between retries (default: 6)
+#
+# USAGE:
+#    # Using defaults from .env
+#    ./wake_target.sh
+#
+#    # With explicit parameters
+#    ./wake_target.sh <MAC> <IP> [MAX_RETRIES] [RETRY_WAIT]
+#
+#    # Called by backup scripts before remote operations
+#    ./wake_target.sh "${BACKUP_OFFSITE_MAC}" "${BACKUP_OFFSITE_IP}"
+#
+# ==============================================================================
 
 set -u
 
@@ -29,6 +69,11 @@ fi
 # 2. Environment Setup & Pre-flight
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 ENV_PATH="${SCRIPT_DIR}/.env"
+
+# Set USER if not defined (needed for cron)
+if [ -z "${USER:-}" ]; then
+    USER=$(whoami)
+fi
 
 if [ -f "$ENV_PATH" ]; then
     set -a
@@ -44,10 +89,10 @@ if ! "${SCRIPT_DIR}/verify_env.sh" > /dev/null 2>&1; then
 fi
 
 # 3. Parameter Validation
-PC_MAC=${1:-${BACKUP_TARGET_MAC:-}}
-TARGET_IP=${2:-${BACKUP_TARGET_IP:-}}
-MAX_RETRIES=${3:-15}
-RETRY_WAIT=${4:-6}
+PC_MAC=${1:-${BACKUP_OFFSITE_MAC:-}}
+TARGET_IP=${2:-${BACKUP_OFFSITE_IP:-}}
+MAX_RETRIES=${3:-${BACKUP_OFFSITE_MAX_RETRIES:-15}}
+RETRY_WAIT=${4:-${BACKUP_OFFSITE_RETRY_WAIT:-6}}
 
 if [[ -z "$PC_MAC" || -z "$TARGET_IP" ]]; then
     echo "Usage: $0 <MAC_ADDRESS> <IP_ADDRESS> [MAX_RETRIES] [RETRY_WAIT]" >&2

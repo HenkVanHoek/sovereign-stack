@@ -5,8 +5,16 @@
 # Part of the sovereign-stack project.
 # Version: See version.py
 #
-# Sovereign Stack - Infrastructure SSH Scanner
-#
+# Sovereign Stack - Infrastructure Scanner
+# Scans hosts (Linux/Windows/Synology) via SSH or API to collect:
+# - Virtual Machines (VirtualBox)
+# - Docker Containers
+# - Host Disk Usage
+# Syncs results to NetBox as Device comments.
+# This python script together with import_inventory.py is executed via a crontab job:
+# 0 1 * * * cd /home/$USER/docker && ./run_task.sh import_inventory.py >>
+# ...cron.log 2>&1 && ./run_task.sh infra_scanner.py >> ...cron.log 2>&1
+
 # Copyright (C) 2026 Henk van Hoek
 #
 # This program is free software: you can redistribute it and/or modify
@@ -196,6 +204,8 @@ def get_connection_details(host_name, creds_config):
     return {
         "user": overrides.get("ssh_user", defaults.get("ssh_user")),
         "pass": overrides.get("ssh_pass", defaults.get("ssh_pass")),
+        "api_user": overrides.get("api_user", defaults.get("api_user")),
+        "api_pass": overrides.get("api_pass", defaults.get("api_pass")),
     }
 
 
@@ -332,6 +342,89 @@ def scan_host(host_info, auth_creds):
         return None
     finally:
         ssh.close()
+
+
+def scan_synology_nas(host_info, api_creds):
+    """Scan Synology NAS using DSM API for storage/volume info."""
+    ip = host_info["ip"]
+    base_url = f"https://{ip}:8031"
+
+    results = {
+        "host_disks": [],
+        "vms": [],
+        "containers": [],
+        "octoprint": False,
+        "online": False,
+    }
+
+    try:
+        logger.info(f"Connecting to Synology NAS {host_info['name']} ({ip})...")
+
+        login_url = f"{base_url}/webapi/entry.cgi"
+        login_params = {
+            "api": "SYNO.API.Auth",
+            "version": 7,
+            "method": "login",
+            "account": api_creds.get("api_user"),
+            "passwd": api_creds.get("api_pass"),
+            "session": "InfraScanner",
+            "format": "sid",
+        }
+
+        response = requests.get(
+            login_url, params=login_params, timeout=10, verify=False
+        )
+        data = response.json()
+
+        if not data.get("success"):
+            logger.warning(f"  [Offline] {host_info['name']}: NAS login failed")
+            return None
+
+        sid = data["data"]["sid"]
+        results["online"] = True
+        logger.info(f"  [Online] Synology NAS {host_info['name']} connected")
+
+        storage_params = {
+            "api": "SYNO.Storage.CGI.Storage",
+            "version": 1,
+            "method": "load_info",
+            "_sid": sid,
+        }
+
+        storage_response = requests.get(
+            login_url, params=storage_params, timeout=10, verify=False
+        )
+        storage_data = storage_response.json()
+
+        if storage_data.get("success"):
+            volumes = storage_data["data"].get("volumes", [])
+            for vol in volumes:
+                results["host_disks"].append(
+                    {
+                        "disk": vol.get("volume_path", "unknown"),
+                        "size_gb": int(vol.get("size_total_byte", 0)) // (1024**3),
+                        "free_gb": int(vol.get("size_free_byte", 0)) // (1024**3),
+                        "mount": vol.get("volume_path", "/"),
+                    }
+                )
+
+        logout_params = {
+            "api": "SYNO.API.Auth",
+            "version": 7,
+            "method": "logout",
+            "_sid": sid,
+        }
+        requests.get(login_url, params=logout_params, timeout=5, verify=False)
+
+        logger.info(f"  [Scan] Found {len(results['host_disks'])} volumes on NAS.")
+        return results
+
+    except requests.RequestException as e:
+        logger.warning(f"  [Offline] {host_info['name']}: {e}")
+        return None
+    except Exception as e:
+        logger.warning(f"  [Error] {host_info['name']}: {e}")
+        return None
 
 
 def sync_device_to_netbox(nb, name, host_disks):
@@ -571,7 +664,13 @@ def main():
     if inventory_data and credentials_data:
         for host in inventory_data["hosts"]:
             creds = get_connection_details(host["name"], credentials_data)
-            scan_results = scan_host(host, creds)
+            host_type = host.get("type", "linux")
+
+            if host_type == "synology":
+                scan_results = scan_synology_nas(host, creds)
+            else:
+                scan_results = scan_host(host, creds)
+
             if scan_results:
                 full_report[host["name"]] = scan_results
                 sync_to_netbox(host, scan_results)

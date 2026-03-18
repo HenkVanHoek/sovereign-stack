@@ -38,7 +38,7 @@ To maintain system integrity, scripts and actions are segregated by environment.
 * **Network & DNS**:
     * Implement Split-Horizon DNS via AdGuard Home rewrites for internal routing.
     * Matrix (Synapse) integration via Reverse Proxy for externally hosted instances.
-* **WOL Utility**: Use wake_target.sh for remote backup targets.
+* **WOL Utility**: Use wake_target.sh for remote backup targets (configurable via `BACKUP_OFFSITE_WOL` in `.env`).
 * **Permission Strategy**: Target scripts must use surgical chown (UID-specific: 33/100/999/70/1000).
 
 ## 5. Release Workflow (Hybrid Method)

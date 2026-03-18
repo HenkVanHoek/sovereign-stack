@@ -14,10 +14,19 @@ Since the Sovereign Stack is developed in PyCharm on a Windows Host:
 * **Tag Synchronization**: After a release using `release.ps1`, verify that Git tags are pushed to GitHub (`git push --tags`) to keep all environments (HP/Lenovo) aligned.
 * **PowerShell Integrity**: Ensure the Windows Execution Policy allows the execution of the local `release.ps1` script.
 
-## 3. Storage & Backup Hygiene
-Your system is configured with a 7-day local retention policy (defined by `BACKUP_RETENTION_DAYS` in `.env`).
+## 3. Storage & Backup Hygiene (3-2-1 Strategy)
+Your system uses a 3-2-1 backup strategy:
+* **2 Local Copies**: USB 8TB drive + Docker root
+* **1 Off-site Copy**: Synology NAS
+
+**Retention Settings** (defined in `.env`):
+* `BACKUP_LOCAL_RETENTION_DAYS`: Days to keep local backups (default: 7)
+* `BACKUP_OFFSITE_RETENTION_VERSIONS`: Number of versions on NAS (default: 7)
+
 * **Monitor Growth**: While the NVMe is large (1TB), Frigate recordings (NVR) and Nextcloud data are the primary growth factors.
-* **Integrity Checks**: The `monitor_backup.sh` script verifies the AES-256-CBC encrypted archives daily.
+* **Integrity Checks**: The `monitor_backup.sh` script verifies backups daily:
+  * Local: AES-256-CBC encryption verification
+  * Off-site: SHA256 checksum comparison between local and NAS
 
 ## 4. Automation: The Maintenance Script
 Use the provided `clean_stack.sh` utility once a month on the Raspberry Pi to simplify these tasks:

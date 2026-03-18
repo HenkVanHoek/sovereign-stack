@@ -63,7 +63,7 @@ set /p "USER_TARGET=Enter file to restore [default: docker-compose.yaml]: "
 if not "!USER_TARGET!"=="" set "TARGET_FILE=!USER_TARGET!"
 
 :: Privacy Note: Password input is visible in the terminal
-set /p "BACKUP_PASS=Enter BACKUP_PASSWORD: "
+set /p "BACKUP_PASS=Enter BACKUP_ENCRYPTION_KEY: "
 
 :: 3. Process
 echo.

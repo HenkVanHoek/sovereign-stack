@@ -55,6 +55,7 @@ thumbs.db
 __pycache__/
 venv/
 .venv/
+.ruff_cache/
 
 # --- Temporary Files ---
 *.tmp

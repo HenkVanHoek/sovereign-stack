@@ -1,8 +1,50 @@
 # Changelog
 
 All notable changes to the Sovereign Stack project will be documented in this file.
-The format is based on Keep a Changelog ([https://keepachangelog.com/en/1.1.0/](https://keepachangelog.com/en/1.1.0/)),
-and this project adheres to Semantic Versioning ([https://semver.org/spec/v2.0.0.html](https://semver.org/spec/v2.0.0.html)).
+The format is based on Keep a Changelog (https://keepachangelog.com/en/1.1.0/),
+and this project adheres to Semantic Versioning (https://semver.org/spec/v2.0.0.html).
+
+## [4.5.0] - 2026-03-18
+### Added
+- **3-2-1 Backup Strategy:** Implemented comprehensive backup strategy with local USB and off-site NAS targets.
+- **Wake-on-LAN Support:** Added WoL for off-site backup targets via `BACKUP_OFFSITE_WOL` configuration.
+- **Checksum Verification:** Replaced file download verification with SHA256 checksum comparison for efficiency.
+- **Retention Settings:** Added configurable retention for both local (`BACKUP_LOCAL_RETENTION_DAYS`) and off-site (`BACKUP_OFFSITE_RETENTION_VERSIONS`) backups.
+
+### Changed
+- **Consolidated Configuration:** Merged `.backup.env` into `.env` for simplified management.
+- **Renamed Variables:** All backup variables now use consistent naming:
+  - `BACKUP_LOCAL_*` for USB/local backup settings
+  - `BACKUP_OFFSITE_*` for NAS/remote backup settings
+  - `BACKUP_ENCRYPTION_KEY` (was `BACKUP_PASSWORD`/`DB_PASSWORD`)
+- **Enhanced Monitoring:** Monitor script now reports ✅/⚠️/❌ status based on actual verification results.
+
+### Fixed
+- **Monitor Script:** Fixed undefined variable errors, corrected backup directory paths.
+- **WoL Scripts:** Added `USER` variable fallback for cron compatibility.
+- **SSH/SFTP Issues:** Backup now uses `cat` over SSH instead of SCP to work with NAS devices without SFTP.
+
+---
+
+## [4.4.0] - 2026-03-13
+### Added
+- **Remote VM Backup:** Implemented a robust rsync-based backup system for remote Synapse (Matrix) VMs via Tailscale.
+- **Automated DB Dumps:** Integrated non-interactive `pg_dumpall` execution inside remote Docker containers using `PGPASSWORD` injection.
+- **Enhanced Signal Alerts:** Added real-time Signal Messenger notifications for backup start, success, and failure, including session metadata.
+- **Smart Retention:** Added a 7-day rolling window for SQL dumps and automated log rotation (1000-line limit) to prevent storage bloat.
+- **Security Elevation:** Implemented `--rsync-path="sudo rsync"` logic to allow secure backup of root-owned files (like Synapse signing keys) without interactive passwords.
+
+### Changed
+- **Logging Architecture:** Overhauled the log format with clear session headers, timestamps, and destination path reporting for better auditability.
+- **Variable-Driven Design:** Decoupled project paths by moving `DOCKER_FOLDER` and `PROJECT_ROOT` to `.backup.env` for better portability.
+- **Version Integration:** The backup script now dynamically pulls the current version from `version.py` for inclusion in alerts and logs.
+
+### Fixed
+- **Host Key Failures:** Resolved "Host key verification failed" errors by adding `StrictHostKeyChecking=accept-new` to automated SSH commands.
+- **Permission Denied Errors:** Fixed rsync failures on sensitive local files (Traefik `acme.json`, Mosquitto DB) by utilizing elevated execution logic.
+- **Logic Resilience:** Replaced `docker compose exec` with direct `docker exec` in backup routines to bypass directory context issues on remote hosts.
+
+---
 
 ## [4.3.0] - 2026-02-23
 ### Added
@@ -16,109 +58,9 @@ and this project adheres to Semantic Versioning ([https://semver.org/spec/v2.0.0
 - **Security Guardians:** Introduced the env-validator (The Sentinel) and s3-mount-fixer (The Janitor).
 - **Email Integration:** Full SMTP support for Nextcloud and Fail2ban real-time alerts.
 
-### Changed
-- **Enhanced OctoPrint Verification:** Improved HTML title checks to prevent false-positive detection on proxy and NVR services.
-- **Network Logic:** Migrated the Infra Scanner to the pi-services Docker network for direct internal API access to NetBox.
-- **YAML Standard:** Migrated all services to dictionary-style (KEY: VALUE) environment variables for consistency.
-- **Timezone Sync:** Enforced ${TZ} variable across all stack containers.
-- **Watchtower Policy:** Applied watchtower.enable=false labels to all database-driven services.
-
-### Fixed
-- **API Endpoint Error:** Resolved the 'Endpoint' object has no attribute 'cluster_types' error by correcting the pynetbox virtualization path.
-- **Resource Busy Error:** Fixed issues where .env files were locked during docker cp operations by utilizing native Docker volumes and environment loading.
-
-### Removed
-- **Prosody:** Removed due to ARM architecture limitations and UI management complexity.
-
----
-## [4.2.0] - 2026-02-22 "The Discovery Update"
-
-### Added
-- **Infrastructure Discovery**: Added `infra_scanner.py` for automated SSH-based inventory of Docker containers and VirtualBox VMs.
-- **Service Intelligence**: Implemented detection for **OctoPrint** 3D-printer interfaces.
-- **Asset Management**: Full integration of **NetBox** with supporting scripts (`seed_netbox.py`, `import_inventory.py`, `check_netbox_api.py`).
-- **Project Standards**: Introduced `version.py` for centralized versioning and `.editorconfig` for Python linting rules.
-- **Tooling**: Added `run_task.sh` and `bulk_rename_from_nmap.py` for administrative efficiency.
-
-### Changed
-- **Architecture Refactor**: Separated metadata from secrets by splitting `inventory.json` and `credentials.json`.
-- **Matrix Strategy**: Migrated from local Conduit to external Synapse hosting via Reverse Proxy.
-- **Build System**: Switched to **uv** in `Dockerfile.infra_scanner` for near-instant dependency installation.
-- **Environment Audit**: Expanded `verify_env.sh` to validate 56 variables; added `check_env_consistency.sh`.
-- **Code Quality**: Refactored Python scripts to resolve scope-shadowing and linter warnings in PyCharm.
-
-### Fixed
-- Fixed regression where network variables were lost during the removal of Conduit.
-- Optimized `backup_stack.sh` with full headers and linter improvements.
-
-### Removed
-- **Matrix**: Removed local Conduit (Matrix) services and associated data persistence layers.
-
----
-## [4.1.0] - 2026-02-19 "Infrastructure Expansion"
-
-### Added
-- **Infrastructure Management**: Integrated **Netbox** (IPAM & DCIM) to manage IP addresses, virtual machines, and device racking.
-- **Database**: Added a dedicated **PostgreSQL 15** container specifically for the Netbox backend.
-- **Caching**: Added a dedicated **Redis 7** container for Netbox task queuing and caching.
-
-### Changed
-- **Documentation**: Updated `README.md`, `First-Run Guide.md`, `Checklist.md`, and `INSTALL.md` to reflect the new Netbox requirements and initialization commands.
--
-## [4.0.0] - 2026-02-15 "The Sovereign Awakening"
-
-### Added
-- **Communication**: Replaced Prosody (XMPP) with **Matrix (Conduit)** for modern, federated messaging.
-- **Home Automation**: Added **Home Assistant Core**, **Mosquitto** (MQTT), and **Frigate** (NVR/AI).
-- **Office Suite**: Integrated **Collabora Online** for real-time document editing in Nextcloud.
-- **Performance**: Added **Nextcloud Notify Push** (High Performance Backend).
-- **Management**: Added **Portainer** for container visualization and management.
-- **Networking**: Added specific `.env` variables for split-DNS (`EXTERNAL_DNS_IP`, `EXTERNAL_DNS_NAME`, `INTERNAL_HOST_IP`).
-
-### Changed
-- **Breaking**: Complete overhaul of `docker-compose.yaml` to strict **2-space indentation** and quoted passwords.
-- **Breaking**: `.env` structure changed; legacy DNS variables deprecated.
-- **Security**: Adopted a "Surgical Permission" model. Scripts now avoid broad `chown -R` commands and target specific UID/GIDs (33, 100, 999).
-- **Documentation**: `README.md` and manual rewritten to English with detailed service enumeration (19+ services).
-
-### Fixed
-- Fixed Docker container name conflicts ("ghost containers") during restarts.
-- Fixed `restore_stack.sh` permissions logic to include Matrix (UID 100) and Database (UID 999) folders.
-
----
-
-## [3.6.1] - 2026-01-25
-
-### Added
-- New security guard script: `verify_env.sh` to ensure all mandatory secrets are present before execution.
-- Implementation of `flock` (file locking) in all automation scripts to prevent overlapping processes.
-- Full support for `ed25519` SSH keys for faster and more secure remote authentication.
-- Added Visual Studio Code (`.vscode`) and PyCharm (`.idea`) exclusions to `.gitignore`.
-- Integrated `wakeonlan` check in `INSTALL.sh` for remote backup target wake-up capability.
-- Added `COTUR_SECRET` auto-generation for secure Nextcloud Talk video calls.
-
-### Changed
-- Standardized project directory structure to `~/sovereign-stack` for better GitHub portability.
-- Refactored `INSTALL.sh` into a professional wizard with dependency checks and environment setup.
-- Optimized Cron schedule: Backup at 03:00 and Monitor at 03:30 to fit the 90-minute integrity window.
-- Updated all documentation (INSTALL, README, etc.) to English for the public GitHub release.
-- Switched all script headers to the full GNU General Public License v3.0 text.
-
-### Fixed
-- Fixed pathing issues in `monitor_backup.sh` when communicating with Windows-based backup targets.
-- Replaced Linux `test -e` commands with Windows-compatible `if exist` logic for remote file verification.
-- Removed redundant `2>&1` redirects in Crontab to ensure cleaner and more specific log files.
-- Corrected file permission issues by adding a dedicated `fix-nextcloud-perms.sh` utility.
-
-### Security
-- Prevented scripts from running as `root` to adhere to the principle of least privilege.
-- Hardened `.env` file permissions to `600` automatically during installation.
-- Enhanced `.gitignore` to prevent accidental commits of certificates (`.crt`, `.key`) and database dumps (`.sql`).
-
 ---
 
 ## [3.5.0] - 2026-01-11
-
 ### Added
 - Initial support for NVMe M.2 SSD storage on Raspberry Pi 5.
 - Migration from SD-card based storage to high-performance disk setup.
@@ -130,10 +72,9 @@ and this project adheres to Semantic Versioning ([https://semver.org/spec/v2.0.0
 
 The Sovereign Stack began as a personal hobby and laboratory project to achieve digital autonomy. Versions prior to **v3.5.0** were part of an internal, rapid-development phase and are not individually documented here.
 
-Starting with **v3.6.1**, the project has transitioned to a structured release cycle for public use on GitHub, with all future changes being meticulously tracked in this log.
+Starting with **v4.4.0**, the project continues its transition to a structured release cycle for public use on GitHub, with all future changes being meticulously tracked in this log.
 
 ---
 
 *This documentation is part of the **Sovereign Stack** project.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY.
-Copyright (c) 2026 Henk van Hoek. Licensed under the [GNU GPL-3.0 License](LICENSE).*
+Copyright (c) 2026 Henk van Hoek. Licensed under the GNU GPL-3.0 License (LICENSE).*

@@ -30,6 +30,7 @@ services:
     networks:
       - pi-services
 
+  # --- Portainer ---
   portainer:
     container_name: portainer
     image: portainer/portainer-ce:latest
@@ -39,7 +40,7 @@ services:
     security_opt:
       - "no-new-privileges:true"
     ports:
-      - "9443:9443"
+      - "${PORT_PORTAINER}:9443"
     volumes:
       - "/etc/localtime:/etc/localtime:ro"
       - "/var/run/docker.sock:/var/run/docker.sock"
@@ -47,6 +48,7 @@ services:
     networks:
       - pi-services
 
+  # --- Frigate ---
   frigate:
     container_name: frigate
     privileged: true
@@ -78,17 +80,17 @@ services:
         tmpfs:
           size: 1000000000
     ports:
-      - "5000:5000"
-      - "8971:8971"
-      - "8554:8554"
-      - "8555:8555/tcp"
-      - "8555:8555/udp"
+      - "${PORT_FRIGATE_WEB}:5000"
+      - "${PORT_FRIGATE_WS}:8971"
+      - "${PORT_FRIGATE_RTSP_RESTREAM}:8554"
+      - "${PORT_FRIGATE_RTSP}:8555/tcp"
+      - "${PORT_FRIGATE_RTSP}:8555/udp"
     environment:
       TZ: "${TZ}"
       FRIGATE_RTSP_PASSWORD: "${FRIGATE_RTSP_PASSWORD}"
       FRIGATE_MQTT_ENABLED: "True"
       FRIGATE_MQTT_HOST: "mqtt"
-      FRIGATE_MQTT_PORT: "1883"
+      FRIGATE_MQTT_PORT: "${FRIGATE_MQTT_PORT}"
       FRIGATE_MQTT_USER: "${FRIGATE_MQTT_USER}"
       FRIGATE_MQTT_PASSWORD: "${FRIGATE_MQTT_PASSWORD}"
     networks:
@@ -113,6 +115,7 @@ services:
     depends_on:
       - mqtt
 
+  # --- MQTT ---
   mqtt:
     container_name: mqtt
     image: eclipse-mosquitto:latest
@@ -120,8 +123,8 @@ services:
     environment:
       TZ: "${TZ}"
     ports:
-      - "1883:1883"
-      - "9001:9001"
+      - "${PORT_MQTT}:1883"
+      - "${PORT_MQTT_WS}:9001"
     volumes:
       - "${DOCKER_ROOT}/mosquitto/config:/mosquitto/config"
       - "${DOCKER_ROOT}/mosquitto/data:/mosquitto/data"
@@ -129,6 +132,7 @@ services:
     networks:
       - pi-services
 
+  # --- AdGuard Home ---
   adguardhome:
     container_name: adguardhome
     image: adguard/adguardhome:latest
@@ -136,10 +140,10 @@ services:
     environment:
       TZ: "${TZ}"
     ports:
-      - "53:53/tcp"
-      - "53:53/udp"
-      - "3000:3000/tcp"
-      - "8080:80/tcp"
+      - "${PORT_ADGUARD_DNS_TCP}:53/tcp"
+      - "${PORT_ADGUARD_DNS_UDP}:53/udp"
+      - "${PORT_ADGUARD_WEB}:3000/tcp"
+      - "${PORT_ADGUARD_DNS_HTTP}:80/tcp"
     volumes:
       - "${DOCKER_ROOT}/adguardhome/work:/opt/adguardhome/work"
       - "${DOCKER_ROOT}/adguardhome/conf:/opt/adguardhome/conf"
@@ -164,6 +168,7 @@ services:
     networks:
       - pi-services
 
+  # --- Nginx Proxy Manager ---
   npm:
     container_name: npm
     image: jc21/nginx-proxy-manager:latest
@@ -173,15 +178,16 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.enable=false"
     ports:
-      - "80:80/tcp"
-      - "443:443/tcp"
-      - "8181:81/tcp"
+      - "${PORT_NPM_HTTP}:80/tcp"
+      - "${PORT_NPM_HTTPS}:443/tcp"
+      - "${PORT_NPM_ADMIN}:81/tcp"
     volumes:
       - "${DOCKER_ROOT}/npm/data:/data"
       - "${DOCKER_ROOT}/npm/letsencrypt:/etc/letsencrypt"
     networks:
       - pi-services
 
+  # --- Step-CA (PKI) ---
   step-ca:
     image: "smallstep/step-ca"
     container_name: "step-ca"
@@ -190,7 +196,7 @@ services:
     networks:
       - "pi-services"
     ports:
-      - "9000:9000"
+      - "${PORT_STEP_CA}:9000"
     volumes:
       - "${DOCKER_ROOT}/step-ca:/home/step"
     environment:
@@ -225,7 +231,7 @@ services:
       SS_TPL_SMTPHOST: "${SMTP_HOST}"
       SS_TPL_SMTPPORT: "${SMTP_PORT}"
       SS_TPL_SMTPUSER: "${BACKUP_EMAIL}"
-      SS_TPL_SMTPPASS: "${BACKUP_PASSWORD}"
+      SS_TPL_SMTPPASS: "${BACKUP_ENCRYPTION_KEY}"
       SS_TPL_SMTPTLS: "${SMTP_TLS}"
 
   glances:
@@ -273,6 +279,7 @@ services:
     networks:
       - nextcloud-internal
 
+  # --- Nextcloud ---
   nextcloud-app:
     image: nextcloud:stable
     container_name: nextcloud-app
@@ -284,7 +291,7 @@ services:
       - nextcloud-redis
     env_file: .env
     ports:
-      - "8088:80"
+      - "${PORT_NEXTCLOUD}:80"
     networks:
       - pi-services
       - nextcloud-internal
@@ -308,6 +315,7 @@ services:
       SMTP_NAME: "${NEXTCLOUD_MAIL_SMTPNAME}"
       SMTP_PASSWORD: "${NEXTCLOUD_MAIL_SMTPPASSWORD}"
 
+  # --- Coturn (TURN Server) ---
   coturn:
     image: coturn/coturn:latest
     container_name: coturn
@@ -315,8 +323,8 @@ services:
     networks:
       - pi-services
     ports:
-      - "3478:3478/tcp"
-      - "3478:3478/udp"
+      - "${PORT_COTURN}:3478/tcp"
+      - "${PORT_COTURN}:3478/udp"
     environment:
       TZ: "${TZ}"
       TURN_SECRET: "${COTUR_SECRET}"
@@ -325,8 +333,8 @@ services:
     command:
       - --log-file=stdout
       - --listening-port=3478
-      - --min-port=49152
-      - --max-port=65535
+      - --min-port=${COTURN_MIN_PORT}
+      - --max-port=${COTURN_MAX_PORT}
       - --user-quota=100
       - --total-quota=1000
       - --stale-nonce
@@ -352,6 +360,7 @@ services:
       - pi-services
       - nextcloud-internal
 
+  # --- Homarr (Dashboard) ---
   homarr:
     container_name: homarr
     image: ghcr.io/ajnart/homarr:latest
@@ -361,7 +370,7 @@ services:
       - "${DOCKER_ROOT}/homarr/icons:/app/public/icons"
       - "/var/run/docker.sock:/var/run/docker.sock"
     ports:
-      - "7575:7575"
+      - "${PORT_HOMARR}:7575"
     environment:
       TZ: "${TZ}"
     networks:
@@ -404,15 +413,16 @@ services:
       FORGEJO__database__PASSWD: "${FORGEJO_DB_PASSWORD}"
       FORGEJO__server__DOMAIN: "${DOMAIN}"
       FORGEJO__server__ROOT_URL: "https://git.${DOMAIN}"
-      FORGEJO__server__HTTP_PORT: "3000"
+      FORGEJO__SERVER__HTTP_PORT: "${FORGEJO__SERVER__HTTP_PORT}"
     labels:
       - "com.centurylinklabs.watchtower.enable=false"
     volumes:
       - "${DOCKER_ROOT}/forgejo/data:/data"
       - "/etc/localtime:/etc/localtime:ro"
     ports:
-      - "2222:22"
+      - "${PORT_FORGEJO_SSH}:22"
 
+  # --- Signal-CLI REST API ---
   signal-api:
     image: bbernhard/signal-cli-rest-api:latest
     container_name: signal-api
@@ -421,7 +431,7 @@ services:
       MODE: "json-rpc"
       SIGNAL_CLI_API_PASSWORD: "${SIGNAL_CLI_API_PASSWORD}"
     ports:
-      - "8090:8080"
+      - "${PORT_SIGNAL_API}:8080"
     volumes:
       - "${DOCKER_ROOT}/signal-data:/home/.local/share/signal-cli"
     restart: unless-stopped
@@ -444,6 +454,59 @@ services:
   #     - "${DOCKER_ROOT}/matrix:/var/lib/matrix-conduit"
   #   ports:
   #     - "6167:6167"
+  #   networks:
+  #     - pi-services
+
+  # --- Matrix Synapse Server (Optional) ---
+  # Uncomment this block to enable a full-featured Matrix server.
+  # Requires: Generate SYNAPSE_SECRET_KEY and SYNAPSE_DB_PASSWORD in .env
+  # First run: docker exec -it synapse register_new_matrix_user -c /data/homeserver.yaml http://localhost:8008
+  #
+  # synapse:
+  #   image: matrixdotorg/synapse:latest
+  #   container_name: synapse
+  #   restart: unless-stopped
+  #   environment:
+  #     TZ: "${TZ}"
+  #     SYNAPSE_SERVER_NAME: "matrix.${DOMAIN}"
+  #     SYNAPSE_REPORT_STATS: "no"
+  #   volumes:
+  #     - "${DOCKER_ROOT}/synapse:/data"
+  #   networks:
+  #     - pi-services
+
+  # --- Element Web UI (Optional) ---
+  # Uncomment to enable the Element web client for Matrix.
+  # Requires: synapse service to be running
+  # Configure: Edit config.json to point to your Matrix server
+  #
+  # element:
+  #   image: vectorim/element-web:latest
+  #   container_name: element
+  #   restart: unless-stopped
+  #   environment:
+  #     TZ: "${TZ}"
+  #   volumes:
+  #     - "${DOCKER_ROOT}/element:/usr/src/app/config.json:ro"
+  #   networks:
+  #     - pi-services
+
+  # --- Pushmatrix (Optional) ---
+  # REST API for sending Matrix messages from scripts/automation.
+  # Requires: Synapse to be running and enabled.
+  # Uncomment both Pushmatrix AND Synapse to use.
+  #
+  # pushmatrix:
+  #   image: bonukai/pushmatrix:latest
+  #   container_name: pushmatrix
+  #   restart: unless-stopped
+  #   environment:
+  #     TZ: "${TZ}"
+  #     PUSHMATRIX_HOMESERVER: "http://synapse:8008"
+  #     PUSHMATRIX_USERNAME: "bot"
+  #     PUSHMATRIX_PASSWORD: "${PUSHMATRIX_PASSWORD}"
+  #   volumes:
+  #     - "${DOCKER_ROOT}/pushmatrix:/data"
   #   networks:
   #     - pi-services
 
@@ -475,6 +538,7 @@ services:
     networks:
       - pi-services
 
+  # --- NetBox (IPAM/DCIM) ---
   netbox:
     container_name: netbox
     image: netboxcommunity/netbox:latest
@@ -487,7 +551,7 @@ services:
       - "${DOCKER_ROOT}/netbox/reports:/opt/netbox/netbox/reports"
       - "${DOCKER_ROOT}/netbox/scripts:/opt/netbox/netbox/scripts"
     ports:
-      - "8085:8080"
+      - "${PORT_NETBOX}:8080"
     environment:
       TZ: "${TZ}"
       API_TOKEN_PEPPERS: "${NETBOX_API_TOKEN_PEPPERS}"
@@ -515,6 +579,7 @@ services:
     env_file: .env
     profiles: [ "tools" ]
 
+  # --- UniFi Controller ---
   unifi-controller:
     container_name: unifi-controller
     image: lscr.io/linuxserver/unifi-network-application:latest
@@ -526,19 +591,19 @@ services:
       MONGO_USER: "unifi"
       MONGO_PASS: "${NETBOX_DB_PASSWORD}"
       MONGO_HOST: "unifi-db"
-      MONGO_PORT: "27017"
+      MONGO_PORT: "${MONGO_PORT}"
       MONGO_DBNAME: "unifi"
     volumes:
       - "${DOCKER_ROOT}/unifi/config:/config"
     ports:
-      - "8444:8443"
-      - "3479:3478/udp"
-      - "10080:8080"
-      - "1900:1900/udp"
-      - "8843:8843"
-      - "8880:8880"
-      - "6789:6789"
-      - "5514:5514/udp"
+      - "${PORT_UNIFI_HTTPS}:8443"
+      - "${PORT_UNIFI_STUN}:3478/udp"
+      - "${PORT_UNIFI_API}:8080"
+      - "${PORT_UNIFI_SSDP}:1900/udp"
+      - "${PORT_UNIFI_GUEST_HTTPS}:8843"
+      - "${PORT_UNIFI_GUEST_HTTP}:8880"
+      - "${PORT_UNIFI_ADOPTION}:6789"
+      - "${PORT_UNIFI_SYSLOG}:5514/udp"
     depends_on:
       - unifi-db
     networks:
@@ -570,6 +635,54 @@ services:
       - "${DOCKER_ROOT}/${GARAGE_ROOT}/garage.toml:/etc/garage.toml:ro"
       - "${DOCKER_ROOT}/${GARAGE_ROOT}/meta:/var/lib/garage/meta"
       - "${DOCKER_ROOT}/${GARAGE_ROOT}/data:/var/lib/garage/data"
+
+  # --- Grafana + Loki + Alloy (Logging & Monitoring) ---
+
+  loki:
+    image: grafana/loki:3.2
+    container_name: loki
+    restart: unless-stopped
+    environment:
+      TZ: "${TZ}"
+    ports:
+      - "${PORT_LOKI}:3100"
+    volumes:
+      - "${DOCKER_ROOT}/loki:/loki"
+      - "./loki-config.yaml:/etc/loki/local-config.yaml:ro"
+    networks:
+      - pi-services
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      TZ: "${TZ}"
+      GF_SECURITY_ADMIN_USER: "admin"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_PASSWORD}"
+      GF_INSTALL_PLUGINS: "grafana-netbox-datasource"
+    ports:
+      - "${PORT_GRAFANA}:3000"
+    volumes:
+      - "${DOCKER_ROOT}/grafana:/var/lib/grafana"
+    depends_on:
+      - loki
+    networks:
+      - pi-services
+
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    restart: unless-stopped
+    environment:
+      TZ: "${TZ}"
+    volumes:
+      - "./alloy-config:/etc/alloy/config.alloy:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    depends_on:
+      - loki
+    networks:
+      - pi-services
 
 networks:
   pi-services:

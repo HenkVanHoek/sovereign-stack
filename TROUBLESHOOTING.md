@@ -96,7 +96,7 @@ If the `monitor_backup.sh` script reports that `'test' is not recognized as a co
 The script is attempting to use Linux commands on a Windows machine.
 
 ### Fix
-Ensure the `BACKUP_TARGET_OS="windows"` variable is correctly set in your `.env` file. This tells the monitor to use `if exist` instead of `test`.
+Ensure the `BACKUP_OFFSITE_OS="windows"` variable is correctly set in your `.env` file. This tells the monitor to use `if exist` instead of `test`.
 
 ---
 
@@ -146,7 +146,7 @@ If you see the error `[ERROR] This script should NOT be run with sudo or as root
 Running backup or utility scripts with `sudo` prevents the script from accessing your user-specific SSH keys and identities.
 
 ### Fix
-Always run the stack's scripts as a standard user (e.g., `hvhoek`). The scripts are designed to handle permissions internally.
+Always run the stack's scripts as a standard user (e.g., `$USER` or your own username). The scripts are designed to handle permissions internally.
 
 ---
 

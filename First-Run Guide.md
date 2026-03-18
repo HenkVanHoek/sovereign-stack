@@ -85,29 +85,61 @@ The Sovereign Stack automatically maps your infrastructure to NetBox.
 
 ---
 
-## 6. Matrix Architecture (Post-ADR 0001)
+## 6. Matrix Architecture
 
-Following **ADR 0001**, local Matrix hosting (Conduit) has been removed.
+The stack supports two Matrix hosting options:
+
+### Option A: External Synapse (Default)
+Following **ADR 0001**, local Matrix hosting (Conduit) was removed.
 1. Traffic for matrix.yourdomain.com should be routed via NPM to your external Synapse node.
 2. Verify the federation endpoint:
    curl -v [https://matrix.yourdomain.com/.well-known/matrix/server](https://matrix.yourdomain.com/.well-known/matrix/server)
+
+### Option B: Local Synapse (Optional)
+To host Matrix locally on the Pi:
+1. Generate SYNAPSE_SECRET_KEY and SYNAPSE_DB_PASSWORD in .env
+2. Uncomment synapse, element, and pushmatrix services in docker-compose.yaml
+3. Configure NPM proxy for matrix.yourdomain.com
+4. Create first user: docker exec -it synapse register_new_matrix_user -c /data/homeserver.yaml http://localhost:8008
+5. Enable pushmatrix after creating the synapse user
 
 ---
 
 ## 7. Homarr Dashboard Integration
 
-| Service | Internal Docker URL | Official Source |
-| :--- | :--- | :--- |
-| **Homarr** | http://homarr:7575 | [https://homarr.dev](https://homarr.dev) |
-| **Nextcloud** | http://nextcloud-app:80 | [https://nextcloud.com](https://nextcloud.com) |
-| **Vaultwarden** | http://vaultwarden:80 | [https://github.com/dani-garcia/vaultwarden](https://github.com/dani-garcia/vaultwarden) |
-| **Forgejo** | http://forgejo:3000 | [https://forgejo.org](https://forgejo.org) |
-| **NetBox** | http://netbox:8085 | [https://netboxlabs.com](https://netboxlabs.com) |
-| **AdGuard Home** | http://adguardhome:3000 | [https://adguard.com/adguard-home.html](https://adguard.com/adguard-home.html) |
-| **Home Assistant** | http://homeassistant:8123 | [https://home-assistant.io](https://home-assistant.io) |
-| **Frigate** | http://frigate:5000 | [https://frigate.video](https://frigate.video) |
-| **UniFi** | https://unifi:8443 | [https://ui.com](https://ui.com) |
-| **Signal-API** | http://signal-api:8080 | [https://github.com/bbernhard/signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) |
+| Service | Internal Docker URL | Official Source | Status |
+| :--- | :--- | :--- | :--- |
+| **Homarr** | http://homarr:7575 | [https://homarr.dev](https://homarr.dev) | Active |
+| **Nextcloud** | http://nextcloud-app:80 | [https://nextcloud.com](https://nextcloud.com) | Active |
+| **Vaultwarden** | http://vaultwarden:80 | [https://github.com/dani-garcia/vaultwarden](https://github.com/dani-garcia/vaultwarden) | Active |
+| **Forgejo** | http://forgejo:3000 | [https://forgejo.org](https://forgejo.org) | Active |
+| **NetBox** | http://netbox:8085 | [https://netboxlabs.com](https://netboxlabs.com) | Active |
+| **AdGuard Home** | http://adguardhome:3000 | [https://adguard.com/adguard-home.html](https://adguard.com/adguard-home.html) | Active |
+| **Home Assistant** | http://homeassistant:8123 | [https://home-assistant.io](https://home-assistant.io) | Active |
+| **Frigate** | http://frigate:5000 | [https://frigate.video](https://frigate.video) | Active |
+| **UniFi** | https://unifi:8443 | [https://ui.com](https://ui.com) | Active |
+| **Signal-API** | http://signal-api:8080 | [https://github.com/bbernhard/signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) | Active |
+| **Matrix Synapse** | http://synapse:8008 | [https://matrix.org](https://matrix.org) | Commented |
+| **Element Web** | http://element:80 | [https://element.io](https://element.io) | Commented |
+| **Pushmatrix** | http://pushmatrix:8571 | [https://github.com/bonukai/pushmatrix](https://github.com/bonukai/pushmatrix) | Commented |
+| **Grafana** | http://grafana:3000 | [https://grafana.com](https://grafana.com) | Active |
+| **Loki** | http://loki:3100 | [https://grafana.com/oss/loki](https://grafana.com/oss/loki) | Active |
+| **Alloy** | (collector) | [https://grafana.com/oss/alloy](https://grafana.com/oss/alloy) | Active |
+
+---
+
+## 8. Grafana Access
+
+**URL:** http://grafana.piselfhosting.com (via NPM) or http://\<pi-ip\>:3200
+
+**Default credentials:**
+- Username: `admin`
+- Password: Set in `.env` (GRAFANA_PASSWORD)
+
+**First-time setup:**
+1. Login with default credentials
+2. Add Loki as datasource: http://loki:3100
+3. Import dashboards or create your own
 
 ---
 

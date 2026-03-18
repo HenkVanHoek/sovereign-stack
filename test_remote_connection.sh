@@ -3,22 +3,43 @@
 # Part of the sovereign-stack project.
 # Version: 3.6.2 (Modular & Agnostic)
 #
-# Copyright (C) 2026 Henk van Hoek
+# ==============================================================================
+# Sovereign Stack - Remote Connection Tester
+# ==============================================================================
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# DESCRIPTION:
+# Tests the complete remote backup pipeline: Wake-on-LAN to wake the target
+# machine, then SSH connectivity verification. Useful for diagnosing backup
+# infrastructure issues.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# WHAT IT DOES:
+# 1. Installs wakeonlan if not present
+# 2. Attempts to wake the off-site target via WoL
+# 3. Verifies SSH connection to the target
+# 4. Reports success or failure with troubleshooting tips
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
+# EXIT CODES:
+# 0 = Connection successful
+# 1 = Connection failed
+#
+# DEPENDENCIES:
+#    - wakeonlan (auto-installed if missing)
+#    - ssh
+#    - wake_target.sh (called internally)
+#
+# CONFIGURATION:
+#    See .env for:
+#    - BACKUP_OFFSITE_IP: IP of off-site backup target
+#    - BACKUP_OFFSITE_USER: SSH username
+#    - BACKUP_OFFSITE_MAC: MAC address for WoL
+#    - BACKUP_OFFSITE_MAX_RETRIES: WoL retry attempts
+#    - BACKUP_OFFSITE_RETRY_WAIT: Seconds between WoL retries
+#
+# USAGE:
+#    ./test_remote_connection.sh
+#
+# ==============================================================================
 
-# shellcheck disable=SC2154
 set -u
 
 # 1. Load Environment Dynamically
@@ -36,10 +57,10 @@ else
 fi
 
 # Clean IP address (removes protocol prefixes if present)
-CLEAN_IP=$(echo "$BACKUP_TARGET_IP" | sed -e 's|^http://||' -e 's|^https://||')
+CLEAN_IP=$(echo "$BACKUP_OFFSITE_IP" | sed -e 's|^http://||' -e 's|^https://||')
 
 echo "--- Sovereign Stack: Remote Connection Test ---"
-echo "Target: ${BACKUP_TARGET_USER}@${CLEAN_IP} (${BACKUP_TARGET_OS})"
+echo "Target: ${BACKUP_OFFSITE_USER}@${CLEAN_IP} (${BACKUP_OFFSITE_OS})"
 
 # 2. Dependency Check
 if ! command -v wakeonlan &> /dev/null; then
@@ -51,25 +72,25 @@ fi
 
 # 3. Remote Wake-up Phase
 # Passing arguments to the modular utility to avoid usage errors.
-if [ -n "${BACKUP_TARGET_MAC:-}" ]; then
+if [ -n "${BACKUP_OFFSITE_MAC:-}" ]; then
     echo "[...] Attempting to wake backup target..."
     if ! "${SCRIPT_DIR}/wake_target.sh" \
-        "$BACKUP_TARGET_MAC" \
+        "$BACKUP_OFFSITE_MAC" \
         "$CLEAN_IP" \
-        "$BACKUP_MAX_RETRIES" \
-        "$BACKUP_RETRY_WAIT"; then
+        "${BACKUP_OFFSITE_MAX_RETRIES:-15}" \
+        "${BACKUP_OFFSITE_RETRY_WAIT:-6}"; then
         echo "[WARN] Target failed to respond to ping. SSH may fail."
     else
         echo "[OK] Target is online."
     fi
 else
-    echo "[SKIP] No BACKUP_TARGET_MAC defined in .env. Skipping WoL."
+    echo "[SKIP] No BACKUP_OFFSITE_MAC defined in .env. Skipping WoL."
 fi
 
 # 4. Connectivity Verification
 echo "[...] Verifying SSH access..."
 
-if ssh -o ConnectTimeout=10 -o BatchMode=yes "${BACKUP_TARGET_USER}@${CLEAN_IP}" "echo Connection Successful" &> /dev/null; then
+if ssh -o ConnectTimeout=10 -o BatchMode=yes "${BACKUP_OFFSITE_USER}@${CLEAN_IP}" "echo Connection Successful" &> /dev/null; then
     CONNECTED=true
 else
     CONNECTED=false
@@ -83,8 +104,8 @@ if [ "$CONNECTED" = true ]; then
 else
     echo "FAILURE: Could not establish SSH connection."
     echo "Possible issues:"
-    echo " 1. BACKUP_TARGET_MAC is incorrect or WoL is disabled in BIOS."
-    echo " 2. BACKUP_TARGET_IP is incorrect or firewall is blocking Port 22."
+    echo " 1. BACKUP_OFFSITE_MAC is incorrect or WoL is disabled in BIOS."
+    echo " 2. BACKUP_OFFSITE_IP is incorrect or firewall is blocking Port 22."
     echo " 3. SSH Public Key is not in the remote authorized_keys file."
 fi
 echo "------------------------------------------------"

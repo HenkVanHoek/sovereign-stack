@@ -9,6 +9,9 @@
 # This script automates the registration of Docker services into NetBox.
 # It extracts service names and images from docker-compose.yaml and
 # synchronizes them as Virtual Machines with custom fields.
+# This python script together with import_inventory.py is executed via a crontab job:
+# 0 1 * * * cd /home/$USER/docker && ./run_task.sh import_inventory.py >>
+# ...cron.log 2>&1 && ./run_task.sh infra_scanner.py >> ...cron.log 2>&1
 #
 # Copyright (C) 2026 Henk van Hoek
 #

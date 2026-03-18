@@ -15,8 +15,46 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see [https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
+# ==============================================================================
+# Sovereign Stack - Environment Validator
+# ==============================================================================
+#
+# DESCRIPTION:
+# Validates that all required environment variables from .env are set and
+# that critical paths exist. This script is called by most other scripts
+# to ensure a safe execution environment.
+#
+# WHAT IT DOES:
+# 1. Prevents running as root (security guard)
+# 2. Loads environment variables from .env file
+# 3. Validates ~50 required variables are set and non-empty
+# 4. Verifies DOCKER_ROOT directory exists (or /app in container context)
+#
+# EXIT CODES:
+# 0 = All variables valid
+# 1 = Missing variables or paths not found
+#
+# DEPENDENCIES:
+#    - .env file in script directory
+#
+# CONFIGURATION:
+#    See .env for all required variables including:
+#    - TZ, DOMAIN, DOCKER_ROOT
+#    - Backup settings (BACKUP_*)
+#    - Database credentials (NEXTCLOUD_*, FORGEJO_*, NETBOX_*)
+#    - Service credentials (HA_*, FRIGATE_*)
+#
+# USAGE:
+#    ./verify_env.sh
+#    # Returns 0 on success, non-zero on failure
+#
+#    # Called automatically by other scripts before execution
+#    if ! ./verify_env.sh > /dev/null 2>&1; then
+#        echo "Environment verification failed"
+#        exit 1
+#    fi
+#
+# ==============================================================================
 
 set -u
 
@@ -54,15 +92,18 @@ REQUIRED_VARS=(
     "STEP_CA_DNS_IP"
     "STEPCAT_FINGERPRINT"
     "BACKUP_EMAIL"
-    "BACKUP_PASSWORD"
-    "BACKUP_RETENTION_DAYS"
-    "BACKUP_TARGET_USER"
-    "BACKUP_TARGET_IP"
-    "BACKUP_TARGET_PATH"
-    "BACKUP_TARGET_MAC"
-    "BACKUP_TARGET_OS"
-    "BACKUP_MAX_RETRIES"
-    "BACKUP_RETRY_WAIT"
+    "BACKUP_ENCRYPTION_KEY"
+    "BACKUP_LOCAL_TARGET"
+    "BACKUP_LOCAL_RETENTION_DAYS"
+    "BACKUP_OFFSITE_IP"
+    "BACKUP_OFFSITE_USER"
+    "BACKUP_OFFSITE_PASSWORD"
+    "BACKUP_OFFSITE_PATH"
+    "BACKUP_OFFSITE_OS"
+    "BACKUP_OFFSITE_WOL"
+    "BACKUP_OFFSITE_MAC"
+    "BACKUP_OFFSITE_MAX_RETRIES"
+    "BACKUP_OFFSITE_RETRY_WAIT"
     "INCLUDE_FRIGATE_DATA"
     "INCLUDE_NEXTCLOUD_DATA"
     "ICON_BLACKLIST_LOCAL"
@@ -102,6 +143,12 @@ REQUIRED_VARS=(
 MISSING=0
 # Load .env if it exists in the same directory
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+
+# Set USER if not defined (needed for cron)
+if [ -z "${USER:-}" ]; then
+    USER=$(whoami)
+fi
+
 if [ -f "${SCRIPT_DIR}/.env" ]; then
     set -a
     # shellcheck source=/dev/null

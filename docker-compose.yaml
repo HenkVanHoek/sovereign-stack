@@ -220,6 +220,7 @@ services:
       - "${DOCKER_ROOT}/fail2ban/data:/data"
       - "${DOCKER_ROOT}/npm/data/logs:/var/log/npm:ro"
       - "${DOCKER_ROOT}/forgejo/data/gitea/log:/var/log/forgejo:ro"
+      - "${DOCKER_ROOT}/nextcloud/data:/var/log/nextcloud:ro"
     environment:
       TZ: "${TZ}"
       F2B_LOG_TARGET: "STDOUT"

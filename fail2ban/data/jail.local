@@ -1,0 +1,75 @@
+# Fail2ban jail configuration for Sovereign Stack
+# File: jail.local
+# Part of the sovereign-stack project.
+# Version: See version.py
+
+# ==============================================================================
+# Sovereign Stack - Fail2ban Jail Configuration
+# ==============================================================================
+#
+# DESCRIPTION:
+# Fail2ban jail definitions for Sovereign Stack services.
+# Protects against brute-force attacks on Nextcloud, Nginx Proxy Manager,
+# and Forgejo.
+#
+# WHAT IT DOES:
+# - Monitors authentication logs for failed login attempts
+# - Temporarily bans IPs after maxretry failures
+# - Sends email notifications via SMTP
+#
+# DEPENDENCIES:
+#    - fail2ban container (crazymax/fail2ban:latest)
+#    - Log files mounted from host services
+#
+# CONFIGURATION:
+#    See .env for:
+#    - BACKUP_EMAIL: Destination for ban notifications
+#    - SMTP_HOST, SMTP_PORT, SMTP_TLS: Email settings
+#
+# ==============================================================================
+
+[DEFAULT]
+# Global settings
+bantime = 3600
+findtime = 600
+maxretry = 5
+destemail = backup_email@placeholder.com
+sender = fail2ban@sovereign-stack
+sendername = Sovereign-Fail2Ban
+action = %(action_mwl)s
+mta = mail
+protocol = tcp
+chain = INPUT
+
+# Nextcloud jail
+[nextcloud]
+enabled = true
+port = 80,443
+protocol = tcp
+filter = nextcloud
+logpath = /var/log/nextcloud/nextcloud.log
+maxretry = 5
+bantime = 3600
+findtime = 600
+
+# Nginx Proxy Manager jail
+[nginx-proxy-manager]
+enabled = true
+port = 80,443,81,8181
+protocol = tcp
+filter = nginx-proxy-manager
+logpath = /var/log/npm/*.log
+maxretry = 5
+bantime = 3600
+findtime = 600
+
+# Forgejo jail
+[forgejo]
+enabled = true
+port = 80,443
+protocol = tcp
+filter = forgejo
+logpath = /var/log/forgejo/forgejo.log
+maxretry = 5
+bantime = 3600
+findtime = 600

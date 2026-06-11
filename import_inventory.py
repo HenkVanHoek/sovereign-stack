@@ -101,7 +101,7 @@ def get_docker_services_with_images(compose_path):
     with open(compose_path, "r") as f:
         try:
             data = yaml.safe_load(f)
-            services_data = data.get("services", {})
+            services_data = data.get("services", {}) or {}
             # Create a mapping of service name to its docker image
             return {
                 name: config.get("image", "unknown")
@@ -156,35 +156,37 @@ def main():
         )
 
     # 5. Sync Loop
-    for service_name, image_name in services_dict.items():
-        log_message(f"Syncing service: {service_name} (Image: {image_name})")
+    if services_dict:
+        for service_name, image_name in services_dict.items():
 
-        vm_payload = {
-            "name": service_name,
-            "cluster": cluster.id,
-            "status": "active",
-            "custom_fields": {"docker_image": image_name},
-            "comments": f"Automated import from Sovereign Stack on {datetime.now().date()}",
-        }
+            log_message(f"Syncing service: {service_name} (Image: {image_name})")
 
-        # Check for existing VM within the specific cluster
-        vm = nb.virtualization.virtual_machines.get(
-            name=service_name, cluster_id=cluster.id
-        )
+            vm_payload = {
+                "name": service_name,
+                "cluster": cluster.id,
+                "status": "active",
+                "custom_fields": {"docker_image": image_name},
+                "comments": f"Automated import from Sovereign Stack on {datetime.now().date()}",
+            }
 
-        try:
-            if vm:
-                # Update existing VM entry
-                vm.update(vm_payload)
-                log_message(f"Successfully updated VM: {service_name}")
-            else:
-                # Create new VM entry
-                nb.virtualization.virtual_machines.create(**vm_payload)
-                log_message(f"Successfully created VM: {service_name}")
-        except Exception as e:
-            log_message(f"Warning: Failed to sync {service_name}. Error: {e}")
+            # Check for existing VM within the specific cluster
+            vm = nb.virtualization.virtual_machines.get(
+                name=service_name, cluster_id=cluster.id
+            )
 
-    log_message("Inventory synchronization completed successfully.")
+            try:
+                if vm:
+                    # Update existing VM entry
+                    vm.update(vm_payload)
+                    log_message(f"Successfully updated VM: {service_name}")
+                else:
+                    # Create new VM entry
+                    nb.virtualization.virtual_machines.create(**vm_payload)
+                    log_message(f"Successfully created VM: {service_name}")
+            except Exception as e:
+                log_message(f"Warning: Failed to sync {service_name}. Error: {e}")
+
+        log_message("Inventory synchronization completed successfully.")
 
 
 if __name__ == "__main__":

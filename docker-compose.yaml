@@ -1,3 +1,60 @@
+# ==============================================================================
+# PiSelfhosting / Sovereign Stack - Main Infrastructure
+# ==============================================================================
+# This docker compose file contains the following services:
+#
+# Core Infrastructure & Networking:
+# - portainer          : Container management
+# - npm                : Nginx Proxy Manager (Reverse Proxy)
+# - adguardhome        : DNS & Adblocking
+# - step-ca            : Internal Certificate Authority
+# - coturn             : TURN/STUN server for WebRTC
+#
+# Databases & Automated Backups (Sidecars):
+# - nextcloud-db       : MariaDB for Nextcloud
+# - nextcloud-db-dumper: Automated daily SQL dumps
+# - forgejo-db         : MariaDB for Forgejo
+# - forgejo-db-dumper  : Automated daily SQL dumps
+# - netbox-db          : PostgreSQL for Netbox
+# - netbox-db-dumper   : Automated daily SQL dumps
+# - unifi-db           : MongoDB for Unifi
+# - nextcloud-redis    : Redis cache
+# - netbox-redis       : Redis cache
+#
+# Applications & Services:
+# - nextcloud-app      : File storage and collaboration
+# - notify-push        : Nextcloud high performance backend
+# - forgejo            : Git version control
+# - netbox             : IPAM and DCIM
+# - vaultwarden        : Password manager
+# - homarr             : Dashboard
+# - unifi-controller   : Ubiquiti network management
+# - garage_daemon      : S3 compatible distributed storage
+# - s3-mount-fixer     : Utility to fix S3 volume permissions
+#
+# - eurooffice-docserver: euro-office document server
+#
+# Smart Home & IoT:
+# - homeassistant      : Home automation
+# - mqtt               : Mosquitto message broker
+# - frigate            : NVR with AI object detection
+# - octoprint          : 3D Printer management (commented oout)
+#
+# Security, Monitoring & Tools:
+# - fail2ban           : Intrusion prevention
+# - infra-scanner      : Network scanner for Netbox
+# - nmap-scanner       : Network scanning tool
+# - signal-api         : Signal CLI REST API
+# - loki               : Log aggregation
+# - uptime-kuma	       : Uptime Kuma
+# - grafana            : Analytics and interactive visualization
+# - alloy              : Telemetry collector
+# - glances            : System monitoring
+# - mautrix-whatsapp   : Matrix WhatsApp Bridge
+#
+# Optional Services (Commented out):
+# - matrix / synapse / element / pushmatrix
+# ==============================================================================
 services:
 
   s3-mount-fixer:
@@ -184,6 +241,8 @@ services:
     volumes:
       - "${DOCKER_ROOT}/npm/data:/data"
       - "${DOCKER_ROOT}/npm/letsencrypt:/etc/letsencrypt"
+#      - "${DOCKER_ROOT}/nginx/conf:/etc/nginx/conf.d:ro"
+      - "${DOCKER_ROOT}/nginx/html/liberalevrienden:/var/www/liberalevrienden:ro"
     networks:
       - pi-services
 
@@ -228,11 +287,11 @@ services:
       F2B_DB_PURGE_AGE: "1d"
       SS_TPL_DESTMAIL: "${BACKUP_EMAIL}"
       SS_TPL_SENDERNAME: "Sovereign-Security"
-      SS_TPL_SENDERMAIL: "${BACKUP_EMAIL}"
-      SS_TPL_SMTPHOST: "${SMTP_HOST}"
-      SS_TPL_SMTPPORT: "${SMTP_PORT}"
-      SS_TPL_SMTPUSER: "${BACKUP_EMAIL}"
-      SS_TPL_SMTPPASS: "${BACKUP_ENCRYPTION_KEY}"
+      SS_TPL_SENDERMAIL: "${NEXTCLOUD_MAIL_SMTPNAME}"
+      SS_TPL_SMTPHOST: "${NEXTCLOUD_MAIL_SMTPHOST}"
+      SS_TPL_SMTPPORT: "${NEXTCLOUD_MAIL_SMTPPORT}"
+      SS_TPL_SMTPUSER: "${NEXTCLOUD_MAIL_SMTPNAME}"
+      SS_TPL_SMTPPASS: "${NEXTCLOUD_MAIL_SMTPPASSWORD}"
       SS_TPL_SMTPTLS: "${SMTP_TLS}"
 
   glances:
@@ -268,6 +327,29 @@ services:
       MYSQL_PASSWORD: "${NEXTCLOUD_DB_PASSWORD}"
       MYSQL_DATABASE: "${NEXTCLOUD_DB_NAME}"
       MYSQL_USER: "${NEXTCLOUD_DB_USER}"
+
+  # --- Nextcloud Database Dumper ---
+  nextcloud-db-dumper:
+    image: databack/mysql-backup:latest
+    container_name: nextcloud-db-dumper
+    restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    environment:
+      TZ: "${TZ}"
+      DB_SERVER: "nextcloud-db"
+      DB_USER: "${NEXTCLOUD_DB_USER}"
+      DB_PASS: "${NEXTCLOUD_DB_PASSWORD}"
+      DB_NAMES: "${NEXTCLOUD_DB_NAME}"
+      DB_DUMP_CRON: "0 2 * * *"
+      DB_DUMP_TARGET: "/backups"
+      CLEANUP_OLDER_THAN: "3"
+    networks:
+      - nextcloud-internal
+    depends_on:
+      - nextcloud-db
+    volumes:
+      - "${DOCKER_ROOT}/nextcloud/db_dumps:/backups"
 
   nextcloud-redis:
     image: redis:alpine
@@ -315,6 +397,8 @@ services:
       SMTP_AUTH: "${NEXTCLOUD_MAIL_SMTPAUTH}"
       SMTP_NAME: "${NEXTCLOUD_MAIL_SMTPNAME}"
       SMTP_PASSWORD: "${NEXTCLOUD_MAIL_SMTPPASSWORD}"
+      PHP_OPCACHE_JIT: "disable"
+      DISABLE_IMAGICK: "1"
 
   # --- Coturn (TURN Server) ---
   coturn:
@@ -340,6 +424,16 @@ services:
       - --total-quota=1000
       - --stale-nonce
       - --no-stdout-log
+
+  eurooffice-docserver:
+    image: ghcr.io/euro-office/documentserver:latest
+    container_name: eurooffice-docserver
+    restart: always
+    environment:
+      - EXAMPLE_ENABLED=true
+      - JWT_SECRET=${EUROOFFICE_JWT_SECRET}
+    networks:
+      - pi-services
 
   notify-push:
     image: nextcloud:stable
@@ -393,6 +487,29 @@ services:
       - "com.centurylinklabs.watchtower.enable=false"
     volumes:
       - "${DOCKER_ROOT}/forgejo/db:/var/lib/mysql"
+
+  # --- Forgejo Database Dumper ---
+  forgejo-db-dumper:
+    image: databack/mysql-backup:latest
+    container_name: forgejo-db-dumper
+    restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    environment:
+      TZ: "${TZ}"
+      DB_SERVER: "forgejo-db"
+      DB_USER: "${FORGEJO_DB_USER}"
+      DB_PASS: "${FORGEJO_DB_PASSWORD}"
+      DB_NAMES: "${FORGEJO_DB_NAME}"
+      DB_DUMP_CRON: "0 2 * * *"
+      DB_DUMP_TARGET: "/backups"
+      CLEANUP_OLDER_THAN: "3"
+    networks:
+      - pi-services
+    depends_on:
+      - forgejo-db
+    volumes:
+      - "${DOCKER_ROOT}/forgejo/db_dumps:/backups"
 
   forgejo:
     container_name: forgejo
@@ -528,6 +645,28 @@ services:
     networks:
       - pi-services
 
+  # --- NetBox Database Dumper ---
+  netbox-db-dumper:
+    image: prodrigestivill/postgres-backup-local:latest
+    container_name: netbox-db-dumper
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    environment:
+      TZ: "${TZ}"
+      POSTGRES_HOST: "netbox-db"
+      POSTGRES_DB: "${NETBOX_DB_NAME}"
+      POSTGRES_USER: "${NETBOX_DB_USER}"
+      POSTGRES_PASSWORD: "${NETBOX_DB_PASSWORD}"
+      SCHEDULE: "@daily"
+      BACKUP_KEEP_DAYS: "3"
+    networks:
+      - pi-services
+    depends_on:
+      - netbox-db
+    volumes:
+      - "${DOCKER_ROOT}/netbox/db_dumps:/backups"
+
   netbox-redis:
     container_name: netbox-redis
     image: redis:7-alpine
@@ -640,14 +779,14 @@ services:
   # --- Grafana + Loki + Alloy (Logging & Monitoring) ---
 
   loki:
-    image: grafana/loki:3.2
+    image: grafana/loki:latest
     container_name: loki
     restart: unless-stopped
-    environment:
-      TZ: "${TZ}"
     ports:
       - "${PORT_LOKI}:3100"
     volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "/etc/timezone:/etc/timezone:ro"
       - "${DOCKER_ROOT}/loki:/loki"
       - "./loki-config.yaml:/etc/loki/local-config.yaml:ro"
     networks:
@@ -661,7 +800,7 @@ services:
       TZ: "${TZ}"
       GF_SECURITY_ADMIN_USER: "admin"
       GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_PASSWORD}"
-      GF_INSTALL_PLUGINS: "grafana-netbox-datasource"
+#      GF_INSTALL_PLUGINS: "grafana-netbox-datasource"
     ports:
       - "${PORT_GRAFANA}:3000"
     volumes:
@@ -675,15 +814,57 @@ services:
     image: grafana/alloy:latest
     container_name: alloy
     restart: unless-stopped
-    environment:
-      TZ: "${TZ}"
     volumes:
-      - "./alloy-config:/etc/alloy/config.alloy:ro"
+      - "/etc/localtime:/etc/localtime:ro"
+      - "/etc/timezone:/etc/timezone:ro"
+      - "${DOCKER_ROOT}/alloy-config/config.alloy:/etc/alloy/config.alloy:ro"
       - "/var/run/docker.sock:/var/run/docker.sock"
+      - "${DOCKER_ROOT}/nextcloud/data/data:/data/data:ro"
+      - "${DOCKER_ROOT}/npm/data/logs:/var/log/npm:ro"
     depends_on:
       - loki
     networks:
       - pi-services
+
+# Uptime Kuma service for monitoring the fleet
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    volumes:
+      - ./uptime-kuma-data:/app/data
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+
+  # Matrix WhatsApp Bridge
+# mautrix-whatsapp:
+#   image: dock.mau.dev/mautrix/whatsapp:latest
+#     container_name: mautrix-whatsapp
+#     restart: unless-stopped
+#     volumes:
+#       - "${DOCKER_ROOT}/mautrix-whatsapp:/data"
+#     environment:
+#       TZ: "${TZ}"
+#     networks:
+#       - pi-services
+
+# --- OctoPrint (3D Printer Management) ---
+#  octoprint:
+#    container_name: octoprint
+#    image: octoprint/octoprint:latest
+#    restart: unless-stopped
+#    networks:
+#      - pi-services
+#    ports:
+#      - "${PORT_OCTOPRINT}:80"
+#    devices:
+#      - "${OCTOPRINT_PRINTER_DEVICE}:${OCTOPRINT_PRINTER_DEVICE}"
+##      - "${OCTOPRINT_WEBCAM_DEVICE}:${OCTOPRINT_WEBCAM_DEVICE}"
+#    volumes:
+#      - "${DOCKER_ROOT}/octoprint:/octoprint"
+#    environment:
+#      TZ: "${TZ}"
+#      ENABLE_MJPG_STREAMER: "true"
 
 networks:
   pi-services:

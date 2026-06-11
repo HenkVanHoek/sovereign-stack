@@ -1,0 +1,36 @@
+# --- Security & Secrets ---
+# NEVER commit the .env file containing passwords and keys
+.env
+*.enc
+*.sql
+
+# --- Data & Storage (Excluded from Git) ---
+# These are handled by the backup script, not Git
+backups/
+storage/
+nextcloud/data/
+nextcloud/db/
+vaultwarden/data/
+adguardhome/work/
+portainer/data/
+mosquitto/data/
+mosquitto/log/
+npm/data/logs/
+prosody/data/
+prosody/uploads/
+
+# --- IDE & System Files ---
+# PyCharm settings (we keep these local)
+.idea/
+*.iml
+.DS_Store
+thumbs.db
+
+# Python overhead (if any)
+__pycache__/
+venv/
+.venv/
+
+# --- Temporary Files ---
+*.tmp
+*.log

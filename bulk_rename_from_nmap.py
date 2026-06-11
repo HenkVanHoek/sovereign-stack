@@ -53,7 +53,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see https://www.gnu.org/licenses.
+# along with this program.  If not, see [https://www.gnu.org/licenses](https://www.gnu.org/licenses).
 # ==============================================================================
 
 import os
@@ -63,9 +63,21 @@ from dotenv import load_dotenv
 
 def main():
     load_dotenv()
+
+    # Extract variables safely
+    netbox_url = os.getenv("NETBOX_URL")
+    netbox_token = os.getenv("NETBOX_API_TOKEN")
+
+    # Fail fast and explicitly if critical variables are missing
+    if not netbox_url or not netbox_token:
+        raise ValueError(
+            "CRITICAL: NETBOX_URL and NETBOX_API_TOKEN must be set."
+        )
+
+    # Initialize the API safely
     nb = pynetbox.api(
-        os.getenv("NETBOX_URL").strip().rstrip("/"),
-        token=os.getenv("NETBOX_API_TOKEN").strip(),
+        netbox_url.strip().rstrip("/"),
+        token=netbox_token.strip(),
     )
 
     file_path = "nmap_flat.txt"

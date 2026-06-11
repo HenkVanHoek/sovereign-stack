@@ -1,6 +1,6 @@
 {
     "$schema": "https://opencode.ai/config.json",
-    "model": "ollama/deepseek-coder-v2:16b",
+    "model": "ollama/gemma4:latest",
     "provider": {
         "ollama": {
             "npm": "@ai-sdk/openai-compatible",
@@ -11,6 +11,9 @@
             "models": {
                 "deepseek-coder-v2:16b": {
                     "name": "deepseek-coder-v2:16b"
+                },
+                "gemma4": {
+                    "name": "gemma4:latest"
                 }
             }
         }

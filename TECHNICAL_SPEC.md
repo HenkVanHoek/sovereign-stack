@@ -1,4 +1,4 @@
-# Sovereign Stack Technical Specification (v4.3.0)
+# Sovereign Stack Technical Specification (v4.5.0)
 
 ## 1. Project-wide Requirements
 * **Language**: All documentation, logs, and comments must be in English.
@@ -34,10 +34,12 @@ To maintain system integrity, scripts and actions are segregated by environment.
 * **Mail Architecture**:
     * Container-Native SMTP: Nextcloud connects directly to external relays via .env variables.
     * Host-Level Forwarder: Use msmtp on the Raspberry Pi host for system-level alerts (Backups, Fail2ban, Crontab).
-* **Database**: Export Nextcloud MariaDB dumps using mariadb-dump.
+* **Database**: Export Nextcloud MariaDB dumps using mariadb-dump. Support multi-container Matrix (Synapse) database exports via environment arrays.
 * **Network & DNS**:
     * Implement Split-Horizon DNS via AdGuard Home rewrites for internal routing.
     * Matrix (Synapse) integration via Reverse Proxy for externally hosted instances.
+    * Deploy Euro-Office Document Server for office editing capabilities integrated with Nextcloud.
+    * Deploy Uptime Kuma for fleet-wide active service monitoring and alerting.
 * **WOL Utility**: Use wake_target.sh for remote backup targets (configurable via `BACKUP_OFFSITE_WOL` in `.env`).
 * **Permission Strategy**: Target scripts must use surgical chown (UID-specific: 33/100/999/70/1000).
 

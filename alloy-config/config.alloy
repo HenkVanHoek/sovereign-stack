@@ -1,0 +1,79 @@
+// File: alloy
+// Part of the sovereign-stack project.
+// Version: See version.py
+//
+// Alloy configuration for log collection
+// Collects Docker container logs and forwards to Loki
+//
+// Copyright (C) 2026 Henk van Hoek
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see https://www.gnu.org/licenses.
+logging {
+    level = "info"
+}
+
+loki.write "default" {
+    endpoint {
+        url = "http://loki:3100/loki/api/v1/push"
+    }
+}
+
+// Centrale filter om tijd-gezeur te voorkomen
+loki.process "force_now" {
+    forward_to = [loki.write.default.receiver]
+    stage.timestamp {
+        source = "now"
+        format = "RFC3339"
+    }
+}
+
+// BRON 1: NPM Honeypot
+local.file_match "npm_logs" {
+    path_targets = [{
+        "__address__" = "localhost",
+        // Gebruik **/ om ook in submappen te zoeken
+        "filename"    = "/var/log/npm/**/*_access.log",
+        "job"         = "npm_honeypot",
+    }]
+}
+
+// BRON 2: Nextcloud
+local.file_match "nextcloud_logs" {
+    path_targets = [{
+        "__address__" = "localhost",
+        // We zoeken nu overal in /data/data naar .log bestanden
+        "filename"    = "/data/data/**/*.log",
+        "job"         = "nextcloud",
+    }]
+}
+
+loki.source.file "npm_scrape" {
+    targets    = local.file_match.npm_logs.targets
+    forward_to = [loki.process.force_now.receiver]
+}
+
+// BRON 2: Nextcloud
+local.file_match "nextcloud_logs" {
+    path_targets = [{
+        "__address__" = "localhost",
+        // We zoeken nu overal in /data/data naar .log bestanden
+        "filename"    = "/data/data/**/*.log",
+        "job"         = "nextcloud",
+    }]
+}
+
+loki.source.file "nextcloud_scrape" {
+    targets    = local.file_match.nextcloud_logs.targets
+    forward_to = [loki.process.force_now.receiver]
+}

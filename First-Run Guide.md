@@ -1,4 +1,4 @@
-# First-Run Guide: Service Configuration & Trust (v4.3.0)
+# First-Run Guide: Service Configuration & Trust (v4.5.0)
 
 This guide covers the essential post-installation steps to ensure your **sovereign-stack** services are trusted, connected, and fully functional.
 
@@ -73,6 +73,12 @@ To enable video calls outside your network, connect the Coturn service:
     docker exec --user 33 nextcloud-app php occ app:enable notify_push
     docker exec --user 33 nextcloud-app php notify_push:setup [https://nextcloud.yourdomain.com/push](https://nextcloud.yourdomain.com/push)
 
+### 4.3 Euro-Office Document Server
+To integrate Euro-Office Document Server for live document editing inside Nextcloud:
+1. **Nextcloud App Store:** Install the "ONLYOFFICE" connector app in Nextcloud.
+2. **Configuration:** In Nextcloud Settings → ONLYOFFICE, configure the internal service address and the `EUROOFFICE_JWT_SECRET` key.
+3. **Detailed Guide:** See [docs/EURO_OFFICE.md](file:///home/hvhoek/PycharmProjects/sovereign-stack/docs/EURO_OFFICE.md) for step-by-step setup, NPM routing, and troubleshooting.
+
 ---
 
 ## 5. Infrastructure Discovery (NetBox)
@@ -125,6 +131,8 @@ To host Matrix locally on the Pi:
 | **Grafana** | http://grafana:3000 | [https://grafana.com](https://grafana.com) | Active |
 | **Loki** | http://loki:3100 | [https://grafana.com/oss/loki](https://grafana.com/oss/loki) | Active |
 | **Alloy** | (collector) | [https://grafana.com/oss/alloy](https://grafana.com/oss/alloy) | Active |
+| **Uptime Kuma** | http://uptime-kuma:3001 | [https://github.com/louislam/uptime-kuma](https://github.com/louislam/uptime-kuma) | Active |
+| **Euro-Office** | http://eurooffice-docserver:80 | [https://github.com/euro-office/documentserver](https://github.com/euro-office/documentserver) | Active |
 
 ---
 

@@ -61,3 +61,21 @@ venv/
 *.tmp
 *.log
 /unifi/*
+
+# --- Sensitive Backups & Scans (Ignore all secrets and local network data) ---
+.env
+.env.*
+env.*
+.backup.env*
+!.env.example
+!.backup.env.example
+.envrc
+nmap_flat.txt
+nmap_scan.txt
+socket_whitelist.txt
+mautrix-whatsapp-registration.yaml
+alloy-config.wrong
+check_netbox_api.y
+index.html
+inspect_backup.cmd
+old-docker-compose.yaml

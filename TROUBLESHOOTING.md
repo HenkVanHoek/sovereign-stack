@@ -184,4 +184,4 @@ Remove the ghost container manually:
 
 ---
 *This documentation is part of the Sovereign Stack project.*
-*Copyright (C) 2026 Henk van Hoek. Licensed under the GNU General Public License v3.0.*
+*Copyright © 2026 Henk van Hoek. Licensed under the GNU General Public License v3.0.*

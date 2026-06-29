@@ -6,21 +6,21 @@
 # ==============================================================================
 #
 # DESCRIPTION:
-# Compares environment variables between .env, .env.example, and verify_env.sh
+# Compares environment variables between .env, .env.example, and required_vars.yaml
 # to ensure configuration consistency across the stack. Helps identify missing
 # variables that should be documented in all three places.
 #
 # WHAT IT DOES:
-# 1. Verifies all three files exist (.env, .env.example, verify_env.sh)
+# 1. Verifies all three files exist (.env, .env.example, required_vars.yaml)
 # 2. Extracts all variable names from .env
 # 3. For each variable, checks:
 #    - Is it present in .env.example?
-#    - Is it validated in verify_env.sh?
+#    - Is it validated in required_vars.yaml?
 # 4. Reports summary of missing or undocumented variables
 #
 # OUTPUT FORMAT:
 #    Table showing variable status in each file:
-#    Variable Name | .env.example | verify_env.sh
+#    Variable Name | .env.example | required_vars
 #    -------------------------------------------------
 #    TZ           | OK          | OK
 #    DOMAIN       | OK          | OK
@@ -51,7 +51,7 @@ set -u
 BASE_DIR=$(pwd)
 ENV_FILE="${BASE_DIR}/.env"
 EXAMPLE_FILE="${BASE_DIR}/.env.example"
-VERIFY_SCRIPT="${BASE_DIR}/verify_env.sh"
+REQUIRED_VARS_FILE="${BASE_DIR}/required_vars.yaml"
 
 # Colors for output
 RED='\033[0;31m'
@@ -62,7 +62,7 @@ NC='\033[0m'
 echo "--- Sovereign Stack: Environment Consistency Check ---"
 
 # 1. Check if files exist
-for f in "$ENV_FILE" "$EXAMPLE_FILE" "$VERIFY_SCRIPT"; do
+for f in "$ENV_FILE" "$EXAMPLE_FILE" "$REQUIRED_VARS_FILE"; do
     if [ ! -f "$f" ]; then
         echo -e "${RED}[ERROR] File not found: $f${NC}"
         exit 1
@@ -78,7 +78,7 @@ MISSING_VERIFY=0
 
 echo "Checking ${#VARS[@]} variables in ${BASE_DIR}..."
 echo "----------------------------------------------------------------------"
-printf "%-35s | %-12s | %-12s\n" "Variable Name" ".env.example" "verify_env.sh"
+printf "%-35s | %-12s | %-12s\n" "Variable Name" ".env.example" "required_vars"
 echo "----------------------------------------------------------------------"
 
 for var in "${VARS[@]}"; do
@@ -90,8 +90,8 @@ for var in "${VARS[@]}"; do
         ((MISSING_EXAMPLE++))
     fi
 
-    # Check verify_env.sh (looking for the variable name string)
-    if grep -q "$var" "$VERIFY_SCRIPT"; then
+    # Check required_vars.yaml (looking for the variable name string)
+    if grep -q "$var" "$REQUIRED_VARS_FILE"; then
         STATUS_VERIFY="${GREEN}OK${NC}"
     else
         STATUS_VERIFY="${YELLOW}NOT VALIDATED${NC}"
@@ -104,7 +104,7 @@ done
 echo "----------------------------------------------------------------------"
 echo -e "Summary:"
 echo -e "  - Missing in .env.example: ${MISSING_EXAMPLE}"
-echo -e "  - Not found in verify_env.sh: ${MISSING_VERIFY}"
+echo -e "  - Not found in required_vars.yaml: ${MISSING_VERIFY}"
 echo ""
 
 if [ $MISSING_EXAMPLE -eq 0 ] && [ $MISSING_VERIFY -eq 0 ]; then

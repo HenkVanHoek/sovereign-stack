@@ -67,6 +67,7 @@ venv/
 .env.*
 env.*
 .backup.env*
+
 !.env.example
 !.backup.env.example
 .envrc

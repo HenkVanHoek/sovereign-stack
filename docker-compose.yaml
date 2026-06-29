@@ -458,16 +458,16 @@ services:
   # --- Homarr (Dashboard) ---
   homarr:
     container_name: homarr
-    image: ghcr.io/ajnart/homarr:latest
+    image: ghcr.io/homarr-labs/homarr:latest
     restart: unless-stopped
     volumes:
-      - "${DOCKER_ROOT}/homarr/configs:/app/data/configs"
-      - "${DOCKER_ROOT}/homarr/icons:/app/public/icons"
+      - "${DOCKER_ROOT}/homarr/appdata:/appdata"
       - "/var/run/docker.sock:/var/run/docker.sock"
     ports:
       - "${PORT_HOMARR}:7575"
     environment:
       TZ: "${TZ}"
+      SECRET_ENCRYPTION_KEY: "ef1de403815c40dc514e70088db2feee09c35fb5944fa2988517e27af3da4293"
     networks:
       - pi-services
 
@@ -513,7 +513,7 @@ services:
 
   forgejo:
     container_name: forgejo
-    image: codeberg.org/forgejo/forgejo:14
+    image: codeberg.org/forgejo/forgejo:15.0.2
     restart: unless-stopped
     depends_on:
       - forgejo-db
@@ -694,7 +694,7 @@ services:
       - "${PORT_NETBOX}:8080"
     environment:
       TZ: "${TZ}"
-      API_TOKEN_PEPPERS: "${NETBOX_API_TOKEN_PEPPERS}"
+      API_TOKEN_PEPPER_1: "${NETBOX_API_TOKEN_PEPPERS}"
       SECRET_KEY: "${NETBOX_SECRET_KEY}"
       DB_NAME: "${NETBOX_DB_NAME}"
       DB_USER: "${NETBOX_DB_USER}"
@@ -729,7 +729,7 @@ services:
       PUID: "1000"
       PGID: "1000"
       MONGO_USER: "unifi"
-      MONGO_PASS: "${NETBOX_DB_PASSWORD}"
+      MONGO_PASS: "${UNIFI_DB_PASSWORD}"
       MONGO_HOST: "unifi-db"
       MONGO_PORT: "${MONGO_PORT}"
       MONGO_DBNAME: "unifi"
@@ -775,6 +775,9 @@ services:
       - "${DOCKER_ROOT}/${GARAGE_ROOT}/garage.toml:/etc/garage.toml:ro"
       - "${DOCKER_ROOT}/${GARAGE_ROOT}/meta:/var/lib/garage/meta"
       - "${DOCKER_ROOT}/${GARAGE_ROOT}/data:/var/lib/garage/data"
+    ports:
+      - "3900:3900"
+      - "3901:3901"
 
   # --- Grafana + Loki + Alloy (Logging & Monitoring) ---
 
@@ -835,6 +838,49 @@ services:
     ports:
       - "3001:3001"
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - pi-services
+
+  # --- Fluffychat Standard ---
+  # Universal open web client capable of connecting to any Matrix homeserver.
+  fluffychat-standard:
+    container_name: piselfhosting-fluffychat-standard
+    build:
+      context: https://github.com/HenkVanHoek/pish-fluffychat-web.git#main
+      dockerfile: Dockerfile
+    image: piselfhosting/fluffychat-standard:${FLUFFYCHAT_VERSION}
+    pull_policy: build
+    ports:
+      - "${PORT_FLUFFYCHAT_STANDARD}:80"
+    restart: unless-stopped
+    environment:
+      TZ: "${TZ}"
+      CHAT_MODE: "standard"
+      HOMESERVER_DOMAIN: "matrix.${SECOND_DOMAIN}"
+    networks:
+      - pi-services
+
+  # --- Fluffychat Your Own Domain ---
+  # Dedicated custom web client locked to the stack's local Matrix homeserver.
+  fluffychat-your-own-domain:
+    container_name: piselfhosting-fluffychat-your-own-domain
+    build:
+      context: https://github.com/HenkVanHoek/pish-fluffychat-web.git#main
+      dockerfile: Dockerfile
+    image: piselfhosting/fluffychat-your-own-domain:${FLUFFYCHAT_VERSION}
+    pull_policy: build
+    ports:
+      - "${PORT_FLUFFYCHAT_YOUR_OWN_DOMAIN}:80"
+    restart: unless-stopped
+    environment:
+      TZ: "${TZ}"
+      CHAT_MODE: "your-own-domain"
+      HOMESERVER_DOMAIN: "matrix.${SECOND_DOMAIN}"
+    networks:
+      - pi-services
+
 
   # Matrix WhatsApp Bridge
 # mautrix-whatsapp:
@@ -865,6 +911,74 @@ services:
 #    environment:
 #      TZ: "${TZ}"
 #      ENABLE_MJPG_STREAMER: "true"
+
+  # --- BPTMeldingen Database ---
+  bpt-db:
+    container_name: bpt-db
+    image: postgres:15-alpine
+    restart: unless-stopped
+    networks:
+      - pi-services
+    environment:
+      TZ: "${TZ}"
+      POSTGRES_DB: "${BPT_DB_NAME}"
+      POSTGRES_USER: "${BPT_DB_USER}"
+      POSTGRES_PASSWORD: "${BPT_DB_PASSWORD}"
+    volumes:
+      - "${DOCKER_ROOT}/bpt/db:/var/lib/postgresql/data"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- BPTMeldingen Redis ---
+  bpt-redis:
+    container_name: bpt-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - pi-services
+    environment:
+      TZ: "${TZ}"
+    volumes:
+      - "${DOCKER_ROOT}/bpt/redis:/data"
+
+  # --- BPTMeldingen Application ---
+  bpt-app:
+    container_name: bpt-app
+    build:
+      context: ./bpt-app
+      dockerfile: Dockerfile
+    image: piselfhosting/bpt-app:latest
+    pull_policy: build
+    restart: unless-stopped
+    ports:
+      - "${PORT_BPTMELDINGEN}:5000"
+    environment:
+      TZ: "${TZ}"
+      DATABASE_URL: "postgresql+psycopg2://${BPT_DB_USER}:${BPT_DB_PASSWORD}@bpt-db/${BPT_DB_NAME}"
+      SECRET_KEY: "${BPT_SECRET_KEY}"
+      REGISTRATION_TOKEN: "${BPT_REGISTRATION_TOKEN}"
+      REDIS_URL: "redis://bpt-redis:6379/0"
+      SMTP_SERVER: "${SMTP_HOST}"
+      SMTP_PORT: "${SMTP_PORT}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASSWORD: "${SMTP_PASSWORD:-}"
+      SMTP_FROM_EMAIL: "${SMTP_FROM_EMAIL:-noreply@bptmeldingen.nl}"
+      SMTP_SSL: "${SMTP_TLS:-False}"
+    volumes:
+      - "${DOCKER_ROOT}/bpt/instance:/app/instance"
+      - "${DOCKER_ROOT}/bpt/static/uploads:/app/static/uploads"
+    depends_on:
+      bpt-db:
+        condition: service_healthy
+      bpt-redis:
+        condition: service_started
+    networks:
+      - pi-services
 
 networks:
   pi-services:

@@ -107,3 +107,11 @@ storage_s3:
 misc_ui:
     - ICON_BLACKLIST_LOCAL
     - ICON_DOWNLOAD_TIMEOUT
+
+unifi:
+    - UNIFI_DB_PASSWORD
+
+bpt_meldingen:
+    - BPT_DB_PASSWORD
+    - BPT_SECRET_KEY
+    - BPT_REGISTRATION_TOKEN

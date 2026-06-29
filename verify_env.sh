@@ -88,11 +88,20 @@ fi
 # Haal alle lijst-items uit de YAML (Python yq syntax: '.[] | .[]')
 mapfile -t REQUIRED_VARS < <(yq -r '.[] | .[]' "$YAML_FILE" 2>/dev/null)
 
-# Extra veiligheidscheck: stop als de lijst leeg is
+# Extra safety check: stop if list is empty
 if [ ${#REQUIRED_VARS[@]} -eq 0 ]; then
-    echo "[ERROR] Geen variabelen gevonden in $YAML_FILE. Controleer de YAML-structuur." >&2
+    echo "[ERROR] No variables found in $YAML_FILE. Check YAML structure." >&2
     exit 1
 fi
+
+for var in "${REQUIRED_VARS[@]}"; do
+    [[ -z "$var" || "$var" == "null" || "$var" == "---" ]] && continue
+    if [ -z "${!var:-}" ]; then
+        echo "[ERROR] Environment variable $var is not set in .env" >&2
+        MISSING=$((MISSING + 1))
+    fi
+done
+
 if [ "$MISSING" -gt 0 ]; then
     echo "[FATAL] Missing $MISSING required variables. Check your .env file." >&2
     exit 1

@@ -80,7 +80,10 @@ To ensure the reliability and "Sovereign" nature of the stack, maintenance tasks
     # 3. Daily Infrastructure Discovery (04:00)
     0 4 * * * /home/REPLACE_WITH_USER/sovereign-stack/run_task.sh python3 /home/REPLACE_WITH_USER/sovereign-stack/infra_scanner.py && /home/REPLACE_WITH_USER/sovereign-stack/run_task.sh python3 /home/REPLACE_WITH_USER/sovereign-stack/import_inventory.py >> /home/REPLACE_WITH_USER/sovereign-stack/logs/discovery.log 2>&1
 
-    # 4. Monthly Stack Hygiene (1st of the month at 05:00)
+    # 4. Nightly Nextcloud App Updates (04:30)
+    30 4 * * * /home/REPLACE_WITH_USER/sovereign-stack/update_nextcloud_apps.sh >> /home/REPLACE_WITH_USER/sovereign-stack/logs/nextcloud_update.log 2>&1
+
+    # 5. Monthly Stack Hygiene (1st of the month at 05:00)
     0 5 1 * * /home/REPLACE_WITH_USER/sovereign-stack/clean_stack.sh >> /home/REPLACE_WITH_USER/sovereign-stack/logs/clean.log 2>&1
 
 ---

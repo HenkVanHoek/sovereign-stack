@@ -243,6 +243,8 @@ services:
       - "${DOCKER_ROOT}/npm/letsencrypt:/etc/letsencrypt"
 #      - "${DOCKER_ROOT}/nginx/conf:/etc/nginx/conf.d:ro"
       - "${DOCKER_ROOT}/nginx/html/liberalevrienden:/var/www/liberalevrienden:ro"
+      - "${DOCKER_ROOT}/nginx/html/piselfhosting-site:/var/www/piselfhosting-site:ro"
+
     networks:
       - pi-services
 

@@ -46,5 +46,8 @@ To maintain stability, this stack follows an **Informed Manual** update policy:
     ```
 4. **Permission Restore**: After updates, run `./clean_stack.sh` to restore surgical UID ownership.
 
+> [!NOTE]
+> Nextcloud apps/plugins are automatically updated nightly at 04:30 via the `update_nextcloud_apps.sh` script to prevent UI-based update failures. Nextcloud core updates still follow the manual container upgrade process above.
+
 ---
 *Copyright (c) 2026 Henk van Hoek. Licensed under the GNU GPL-3.0.*

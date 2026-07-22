@@ -152,13 +152,16 @@ ssh-copy-id -i ~/.ssh/id_ed25519.pub -o ConnectTimeout=10 "${BACKUP_OFFSITE_USER
 echo -e "\n${BLUE}Step 4: Configuring Automation (Crontab)...${NC}"
 D_ROOT=$(grep "^DOCKER_ROOT=" "$ENV_FILE" | cut -d'"' -f2)
 
-(crontab -l 2>/dev/null | grep -v "backup_stack.sh" | grep -v "monitor_backup.sh" | grep -v "Sovereign Stack Automation"; \
+(crontab -l 2>/dev/null | grep -v "backup_stack.sh" | grep -v "monitor_backup.sh" | grep -v "update_nextcloud_apps.sh" | grep -v "Sovereign Stack Automation"; \
 echo "# Sovereign Stack Automation
 # 03:00 - Start Backup Pipeline
 0 3 * * * ${D_ROOT}/backup_stack.sh
 
 # 03:30 - Start Integrity Check & Monitoring
-30 3 * * * ${D_ROOT}/monitor_backup.sh") | crontab -
+30 3 * * * ${D_ROOT}/monitor_backup.sh
+
+# 04:30 - Nightly Nextcloud App Updates
+30 4 * * * ${D_ROOT}/update_nextcloud_apps.sh") | crontab -
 
 # --- STAGE 5: Finalize ---
 chmod 600 "$ENV_FILE"
@@ -167,3 +170,4 @@ echo -e "\n${GREEN}Setup complete! Configuration saved to .env${NC}"
 echo -e "${RED}IMPORTANT: Edit .env manually to add your Home Assistant and Frigate passwords!${NC}"
 echo -e "1. Backups scheduled for 03:00 daily."
 echo -e "2. Monitoring (Dead Man's Switch) scheduled for 03:30 daily."
+echo -e "3. Nextcloud app updates scheduled for 04:30 daily."

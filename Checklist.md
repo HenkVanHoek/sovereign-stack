@@ -40,7 +40,7 @@ Perform these checks to ensure autonomy, resilience, and proper synchronization 
 - <span style="font-size: 2em;">☐</span> **Remote Link**: Run ./test_remote_connection.sh to verify WoL and SSH access to off-site backup targets.
 - <span style="font-size: 2em;">☐</span> **Manual Backup**: Run ./backup_stack.sh and verify the archive creation.
 - <span style="font-size: 2em;">☐</span> **Integrity Check**: Run ./monitor_backup.sh to verify local encryption and off-site checksum.
-- <span style="font-size: 2em;">☐</span> **Automation**: Confirm that monitor_backup.sh and discovery tasks are correctly set in crontab -e.
+- <span style="font-size: 2em;">☐</span> **Automation**: Confirm that monitor_backup.sh, discovery tasks, and update_nextcloud_apps.sh are correctly set in crontab -e.
 
 ---
 *This documentation is part of the Sovereign Stack project.
